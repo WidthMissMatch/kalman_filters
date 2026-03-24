@@ -1,0 +1,405 @@
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.NUMERIC_STD.ALL;
+
+entity state_update_3d is
+    port (
+        clk   : in  std_logic;
+        start : in  std_logic;
+
+        x_pos_pred, x_vel_pred : in signed(47 downto 0);
+        y_pos_pred, y_vel_pred : in signed(47 downto 0);
+        z_pos_pred, z_vel_pred : in signed(47 downto 0);
+
+        p11_pred, p12_pred, p13_pred, p14_pred, p15_pred, p16_pred : in signed(47 downto 0);
+        p22_pred, p23_pred, p24_pred, p25_pred, p26_pred           : in signed(47 downto 0);
+        p33_pred, p34_pred, p35_pred, p36_pred                     : in signed(47 downto 0);
+        p44_pred, p45_pred, p46_pred                               : in signed(47 downto 0);
+        p55_pred, p56_pred                                         : in signed(47 downto 0);
+        p66_pred                                                   : in signed(47 downto 0);
+
+        k11, k12, k13 : in signed(47 downto 0);
+        k21, k22, k23 : in signed(47 downto 0);
+        k31, k32, k33 : in signed(47 downto 0);
+        k41, k42, k43 : in signed(47 downto 0);
+        k51, k52, k53 : in signed(47 downto 0);
+        k61, k62, k63 : in signed(47 downto 0);
+
+        nu_x, nu_y, nu_z : in signed(47 downto 0);
+
+        x_pos_upd, x_vel_upd : out signed(47 downto 0);
+        y_pos_upd, y_vel_upd : out signed(47 downto 0);
+        z_pos_upd, z_vel_upd : out signed(47 downto 0);
+
+        p11_upd, p12_upd, p13_upd, p14_upd, p15_upd, p16_upd : out signed(47 downto 0);
+        p22_upd, p23_upd, p24_upd, p25_upd, p26_upd           : out signed(47 downto 0);
+        p33_upd, p34_upd, p35_upd, p36_upd                    : out signed(47 downto 0);
+        p44_upd, p45_upd, p46_upd                             : out signed(47 downto 0);
+        p55_upd, p56_upd                                      : out signed(47 downto 0);
+        p66_upd                                               : out signed(47 downto 0);
+
+        done : out std_logic
+    );
+end state_update_3d;
+
+architecture Behavioral of state_update_3d is
+
+    constant Q : integer := 24;
+    constant UNITY : signed(47 downto 0) := to_signed(16777216, 48);
+
+    constant R11_Q16_16 : signed(47 downto 0) := to_signed(4194304, 48);
+    constant R22_Q16_16 : signed(47 downto 0) := to_signed(4194304, 48);
+    constant R33_Q16_16 : signed(47 downto 0) := to_signed(4194304, 48);
+
+    type state_type is (IDLE, UPDATE_STATE, CONSTRUCT_A, COMPUTE_AP, SHIFT_AP,
+                        COMPUTE_APAT, COMPUTE_KR, WAIT_KR, COMPUTE_KRK, ADD_APAT_KRK, FINISHED);
+    signal state : state_type := IDLE;
+
+    signal k11_reg, k12_reg, k13_reg : signed(47 downto 0);
+    signal k21_reg, k22_reg, k23_reg : signed(47 downto 0);
+    signal k31_reg, k32_reg, k33_reg : signed(47 downto 0);
+    signal k41_reg, k42_reg, k43_reg : signed(47 downto 0);
+    signal k51_reg, k52_reg, k53_reg : signed(47 downto 0);
+    signal k61_reg, k62_reg, k63_reg : signed(47 downto 0);
+
+    signal nu_x_reg, nu_y_reg, nu_z_reg : signed(47 downto 0);
+
+    signal a11, a13, a15 : signed(47 downto 0);
+    signal a21, a22, a23, a25 : signed(47 downto 0);
+    signal a31, a33, a35 : signed(47 downto 0);
+    signal a41, a43, a44, a45 : signed(47 downto 0);
+    signal a51, a53, a55 : signed(47 downto 0);
+    signal a61, a63, a65, a66 : signed(47 downto 0);
+
+    type ap_matrix is array (0 to 35) of signed(95 downto 0);
+    signal ap : ap_matrix := (others => (others => '0'));
+
+    type ap_shifted_matrix is array (0 to 35) of signed(47 downto 0);
+    signal ap_s : ap_shifted_matrix := (others => (others => '0'));
+
+    signal apat_11, apat_12, apat_13, apat_14, apat_15, apat_16 : signed(95 downto 0);
+    signal apat_22, apat_23, apat_24, apat_25, apat_26           : signed(95 downto 0);
+    signal apat_33, apat_34, apat_35, apat_36                    : signed(95 downto 0);
+    signal apat_44, apat_45, apat_46                             : signed(95 downto 0);
+    signal apat_55, apat_56                                      : signed(95 downto 0);
+    signal apat_66                                               : signed(95 downto 0);
+
+    signal kr_11, kr_12, kr_13 : signed(95 downto 0);
+    signal kr_21, kr_22, kr_23 : signed(95 downto 0);
+    signal kr_31, kr_32, kr_33 : signed(95 downto 0);
+    signal kr_41, kr_42, kr_43 : signed(95 downto 0);
+    signal kr_51, kr_52, kr_53 : signed(95 downto 0);
+    signal kr_61, kr_62, kr_63 : signed(95 downto 0);
+
+    signal kr_11_q20, kr_12_q20, kr_13_q20 : signed(47 downto 0);
+    signal kr_21_q20, kr_22_q20, kr_23_q20 : signed(47 downto 0);
+    signal kr_31_q20, kr_32_q20, kr_33_q20 : signed(47 downto 0);
+    signal kr_41_q20, kr_42_q20, kr_43_q20 : signed(47 downto 0);
+    signal kr_51_q20, kr_52_q20, kr_53_q20 : signed(47 downto 0);
+    signal kr_61_q20, kr_62_q20, kr_63_q20 : signed(47 downto 0);
+
+    signal krk_11, krk_12, krk_13, krk_14, krk_15, krk_16 : signed(95 downto 0);
+    signal krk_22, krk_23, krk_24, krk_25, krk_26         : signed(95 downto 0);
+    signal krk_33, krk_34, krk_35, krk_36                 : signed(95 downto 0);
+    signal krk_44, krk_45, krk_46                         : signed(95 downto 0);
+    signal krk_55, krk_56                                 : signed(95 downto 0);
+    signal krk_66                                         : signed(95 downto 0);
+
+begin
+
+    process(clk)
+        variable temp_sum : signed(95 downto 0);
+    begin
+        if rising_edge(clk) then
+            case state is
+
+                when IDLE =>
+                    done <= '0';
+                    if start = '1' then
+
+                        k11_reg <= k11; k12_reg <= k12; k13_reg <= k13;
+                        k21_reg <= k21; k22_reg <= k22; k23_reg <= k23;
+                        k31_reg <= k31; k32_reg <= k32; k33_reg <= k33;
+                        k41_reg <= k41; k42_reg <= k42; k43_reg <= k43;
+                        k51_reg <= k51; k52_reg <= k52; k53_reg <= k53;
+                        k61_reg <= k61; k62_reg <= k62; k63_reg <= k63;
+
+                        nu_x_reg <= nu_x; nu_y_reg <= nu_y; nu_z_reg <= nu_z;
+
+                        state <= UPDATE_STATE;
+                    end if;
+
+                when UPDATE_STATE =>
+
+                    report "STATE_UPDATE: UPDATE_STATE" & LF &
+                           "  Kalman gain: k11=" & integer'image(to_integer(k11_reg)) & " k12=" & integer'image(to_integer(k12_reg)) & " k13=" & integer'image(to_integer(k13_reg)) & LF &
+                           "  Innovation: nu_x=" & integer'image(to_integer(nu_x_reg)) & " nu_y=" & integer'image(to_integer(nu_y_reg)) & " nu_z=" & integer'image(to_integer(nu_z_reg)) & LF &
+                           "  Prediction: x_pos_pred=" & integer'image(to_integer(x_pos_pred)) & " y_pos_pred=" & integer'image(to_integer(y_pos_pred)) & " z_pos_pred=" & integer'image(to_integer(z_pos_pred));
+
+                    temp_sum := (k11_reg * nu_x_reg) + (k12_reg * nu_y_reg) + (k13_reg * nu_z_reg);
+                    x_pos_upd <= x_pos_pred + resize(shift_right(temp_sum, Q), 48);
+
+                    temp_sum := (k21_reg * nu_x_reg) + (k22_reg * nu_y_reg) + (k23_reg * nu_z_reg);
+                    x_vel_upd <= x_vel_pred + resize(shift_right(temp_sum, Q), 48);
+
+                    temp_sum := (k31_reg * nu_x_reg) + (k32_reg * nu_y_reg) + (k33_reg * nu_z_reg);
+                    y_pos_upd <= y_pos_pred + resize(shift_right(temp_sum, Q), 48);
+
+                    temp_sum := (k41_reg * nu_x_reg) + (k42_reg * nu_y_reg) + (k43_reg * nu_z_reg);
+                    y_vel_upd <= y_vel_pred + resize(shift_right(temp_sum, Q), 48);
+
+                    temp_sum := (k51_reg * nu_x_reg) + (k52_reg * nu_y_reg) + (k53_reg * nu_z_reg);
+                    z_pos_upd <= z_pos_pred + resize(shift_right(temp_sum, Q), 48);
+
+                    temp_sum := (k61_reg * nu_x_reg) + (k62_reg * nu_y_reg) + (k63_reg * nu_z_reg);
+                    z_vel_upd <= z_vel_pred + resize(shift_right(temp_sum, Q), 48);
+
+                    state <= CONSTRUCT_A;
+
+                when CONSTRUCT_A =>
+
+                    a11 <= UNITY - k11_reg;
+                    a13 <= -k12_reg;
+                    a15 <= -k13_reg;
+
+                    a21 <= -k21_reg;
+                    a22 <= UNITY;
+                    a23 <= -k22_reg;
+                    a25 <= -k23_reg;
+
+                    a31 <= -k31_reg;
+                    a33 <= UNITY - k32_reg;
+                    a35 <= -k33_reg;
+
+                    a41 <= -k41_reg;
+                    a43 <= -k42_reg;
+                    a44 <= UNITY;
+                    a45 <= -k43_reg;
+
+                    a51 <= -k51_reg;
+                    a53 <= -k52_reg;
+                    a55 <= UNITY - k53_reg;
+
+                    a61 <= -k61_reg;
+                    a63 <= -k62_reg;
+                    a65 <= -k63_reg;
+                    a66 <= UNITY;
+
+                    state <= COMPUTE_AP;
+
+                when COMPUTE_AP =>
+
+                    ap(0)  <= (a11 * p11_pred) + (a13 * p13_pred) + (a15 * p15_pred);
+                    ap(1)  <= (a11 * p12_pred) + (a13 * p23_pred) + (a15 * p25_pred);
+                    ap(2)  <= (a11 * p13_pred) + (a13 * p33_pred) + (a15 * p35_pred);
+                    ap(3)  <= (a11 * p14_pred) + (a13 * p34_pred) + (a15 * p45_pred);
+                    ap(4)  <= (a11 * p15_pred) + (a13 * p35_pred) + (a15 * p55_pred);
+                    ap(5)  <= (a11 * p16_pred) + (a13 * p36_pred) + (a15 * p56_pred);
+
+                    ap(6)  <= (a21 * p11_pred) + (a22 * p12_pred) + (a23 * p13_pred) + (a25 * p15_pred);
+                    ap(7)  <= (a21 * p12_pred) + (a22 * p22_pred) + (a23 * p23_pred) + (a25 * p25_pred);
+                    ap(8)  <= (a21 * p13_pred) + (a22 * p23_pred) + (a23 * p33_pred) + (a25 * p35_pred);
+                    ap(9)  <= (a21 * p14_pred) + (a22 * p24_pred) + (a23 * p34_pred) + (a25 * p45_pred);
+                    ap(10) <= (a21 * p15_pred) + (a22 * p25_pred) + (a23 * p35_pred) + (a25 * p55_pred);
+                    ap(11) <= (a21 * p16_pred) + (a22 * p26_pred) + (a23 * p36_pred) + (a25 * p56_pred);
+
+                    ap(12) <= (a31 * p11_pred) + (a33 * p13_pred) + (a35 * p15_pred);
+                    ap(13) <= (a31 * p12_pred) + (a33 * p23_pred) + (a35 * p25_pred);
+                    ap(14) <= (a31 * p13_pred) + (a33 * p33_pred) + (a35 * p35_pred);
+                    ap(15) <= (a31 * p14_pred) + (a33 * p34_pred) + (a35 * p45_pred);
+                    ap(16) <= (a31 * p15_pred) + (a33 * p35_pred) + (a35 * p55_pred);
+                    ap(17) <= (a31 * p16_pred) + (a33 * p36_pred) + (a35 * p56_pred);
+
+                    ap(18) <= (a41 * p11_pred) + (a43 * p13_pred) + (a44 * p14_pred) + (a45 * p15_pred);
+                    ap(19) <= (a41 * p12_pred) + (a43 * p23_pred) + (a44 * p24_pred) + (a45 * p25_pred);
+                    ap(20) <= (a41 * p13_pred) + (a43 * p33_pred) + (a44 * p34_pred) + (a45 * p35_pred);
+                    ap(21) <= (a41 * p14_pred) + (a43 * p34_pred) + (a44 * p44_pred) + (a45 * p45_pred);
+                    ap(22) <= (a41 * p15_pred) + (a43 * p35_pred) + (a44 * p45_pred) + (a45 * p55_pred);
+                    ap(23) <= (a41 * p16_pred) + (a43 * p36_pred) + (a44 * p46_pred) + (a45 * p56_pred);
+
+                    ap(24) <= (a51 * p11_pred) + (a53 * p13_pred) + (a55 * p15_pred);
+                    ap(25) <= (a51 * p12_pred) + (a53 * p23_pred) + (a55 * p25_pred);
+                    ap(26) <= (a51 * p13_pred) + (a53 * p33_pred) + (a55 * p35_pred);
+                    ap(27) <= (a51 * p14_pred) + (a53 * p34_pred) + (a55 * p45_pred);
+                    ap(28) <= (a51 * p15_pred) + (a53 * p35_pred) + (a55 * p55_pred);
+                    ap(29) <= (a51 * p16_pred) + (a53 * p36_pred) + (a55 * p56_pred);
+
+                    ap(30) <= (a61 * p11_pred) + (a63 * p13_pred) + (a65 * p15_pred) + (a66 * p16_pred);
+                    ap(31) <= (a61 * p12_pred) + (a63 * p23_pred) + (a65 * p25_pred) + (a66 * p26_pred);
+                    ap(32) <= (a61 * p13_pred) + (a63 * p33_pred) + (a65 * p35_pred) + (a66 * p36_pred);
+                    ap(33) <= (a61 * p14_pred) + (a63 * p34_pred) + (a65 * p45_pred) + (a66 * p46_pred);
+                    ap(34) <= (a61 * p15_pred) + (a63 * p35_pred) + (a65 * p55_pred) + (a66 * p56_pred);
+                    ap(35) <= (a61 * p16_pred) + (a63 * p36_pred) + (a65 * p56_pred) + (a66 * p66_pred);
+
+                    state <= SHIFT_AP;
+
+                when SHIFT_AP =>
+
+                    state <= COMPUTE_APAT;
+
+                when COMPUTE_APAT =>
+
+                    apat_11 <= resize(shift_right(ap(0) * a11, 2*Q), 96) + resize(shift_right(ap(2) * a13, 2*Q), 96) + resize(shift_right(ap(4) * a15, 2*Q), 96);
+
+                    apat_12 <= resize(shift_right(ap(0) * a21, 2*Q), 96) + resize(shift_right(ap(1) * a22, 2*Q), 96) + resize(shift_right(ap(2) * a23, 2*Q), 96) + resize(shift_right(ap(4) * a25, 2*Q), 96);
+
+                    apat_13 <= resize(shift_right(ap(0) * a31, 2*Q), 96) + resize(shift_right(ap(2) * a33, 2*Q), 96) + resize(shift_right(ap(4) * a35, 2*Q), 96);
+
+                    apat_14 <= resize(shift_right(ap(0) * a41, 2*Q), 96) + resize(shift_right(ap(2) * a43, 2*Q), 96) + resize(shift_right(ap(3) * a44, 2*Q), 96) + resize(shift_right(ap(4) * a45, 2*Q), 96);
+
+                    apat_15 <= resize(shift_right(ap(0) * a51, 2*Q), 96) + resize(shift_right(ap(2) * a53, 2*Q), 96) + resize(shift_right(ap(4) * a55, 2*Q), 96);
+
+                    apat_16 <= resize(shift_right(ap(0) * a61, 2*Q), 96) + resize(shift_right(ap(2) * a63, 2*Q), 96) + resize(shift_right(ap(4) * a65, 2*Q), 96) + resize(shift_right(ap(5) * a66, 2*Q), 96);
+
+                    apat_22 <= resize(shift_right(ap(6) * a21, 2*Q), 96) + resize(shift_right(ap(7) * a22, 2*Q), 96) + resize(shift_right(ap(8) * a23, 2*Q), 96) + resize(shift_right(ap(10) * a25, 2*Q), 96);
+
+                    apat_23 <= resize(shift_right(ap(6) * a31, 2*Q), 96) + resize(shift_right(ap(8) * a33, 2*Q), 96) + resize(shift_right(ap(10) * a35, 2*Q), 96);
+
+                    apat_24 <= resize(shift_right(ap(6) * a41, 2*Q), 96) + resize(shift_right(ap(8) * a43, 2*Q), 96) + resize(shift_right(ap(9) * a44, 2*Q), 96) + resize(shift_right(ap(10) * a45, 2*Q), 96);
+
+                    apat_25 <= resize(shift_right(ap(6) * a51, 2*Q), 96) + resize(shift_right(ap(8) * a53, 2*Q), 96) + resize(shift_right(ap(10) * a55, 2*Q), 96);
+
+                    apat_26 <= resize(shift_right(ap(6) * a61, 2*Q), 96) + resize(shift_right(ap(8) * a63, 2*Q), 96) + resize(shift_right(ap(10) * a65, 2*Q), 96) + resize(shift_right(ap(11) * a66, 2*Q), 96);
+
+                    apat_33 <= resize(shift_right(ap(12) * a31, 2*Q), 96) + resize(shift_right(ap(14) * a33, 2*Q), 96) + resize(shift_right(ap(16) * a35, 2*Q), 96);
+
+                    apat_34 <= resize(shift_right(ap(12) * a41, 2*Q), 96) + resize(shift_right(ap(14) * a43, 2*Q), 96) + resize(shift_right(ap(15) * a44, 2*Q), 96) + resize(shift_right(ap(16) * a45, 2*Q), 96);
+
+                    apat_35 <= resize(shift_right(ap(12) * a51, 2*Q), 96) + resize(shift_right(ap(14) * a53, 2*Q), 96) + resize(shift_right(ap(16) * a55, 2*Q), 96);
+
+                    apat_36 <= resize(shift_right(ap(12) * a61, 2*Q), 96) + resize(shift_right(ap(14) * a63, 2*Q), 96) + resize(shift_right(ap(16) * a65, 2*Q), 96) + resize(shift_right(ap(17) * a66, 2*Q), 96);
+
+                    apat_44 <= resize(shift_right(ap(18) * a41, 2*Q), 96) + resize(shift_right(ap(20) * a43, 2*Q), 96) + resize(shift_right(ap(21) * a44, 2*Q), 96) + resize(shift_right(ap(22) * a45, 2*Q), 96);
+
+                    apat_45 <= resize(shift_right(ap(18) * a51, 2*Q), 96) + resize(shift_right(ap(20) * a53, 2*Q), 96) + resize(shift_right(ap(22) * a55, 2*Q), 96);
+
+                    apat_46 <= resize(shift_right(ap(18) * a61, 2*Q), 96) + resize(shift_right(ap(20) * a63, 2*Q), 96) + resize(shift_right(ap(22) * a65, 2*Q), 96) + resize(shift_right(ap(23) * a66, 2*Q), 96);
+
+                    apat_55 <= resize(shift_right(ap(24) * a51, 2*Q), 96) + resize(shift_right(ap(26) * a53, 2*Q), 96) + resize(shift_right(ap(28) * a55, 2*Q), 96);
+
+                    apat_56 <= resize(shift_right(ap(24) * a61, 2*Q), 96) + resize(shift_right(ap(26) * a63, 2*Q), 96) + resize(shift_right(ap(28) * a65, 2*Q), 96) + resize(shift_right(ap(29) * a66, 2*Q), 96);
+
+                    apat_66 <= resize(shift_right(ap(30) * a61, 2*Q), 96) + resize(shift_right(ap(32) * a63, 2*Q), 96) + resize(shift_right(ap(34) * a65, 2*Q), 96) + resize(shift_right(ap(35) * a66, 2*Q), 96);
+
+                    state <= COMPUTE_KR;
+
+                when COMPUTE_KR =>
+
+                    kr_11 <= k11_reg * R11_Q16_16;
+                    kr_12 <= k12_reg * R22_Q16_16;
+                    kr_13 <= k13_reg * R33_Q16_16;
+
+                    kr_21 <= k21_reg * R11_Q16_16;
+                    kr_22 <= k22_reg * R22_Q16_16;
+                    kr_23 <= k23_reg * R33_Q16_16;
+
+                    kr_31 <= k31_reg * R11_Q16_16;
+                    kr_32 <= k32_reg * R22_Q16_16;
+                    kr_33 <= k33_reg * R33_Q16_16;
+
+                    kr_41 <= k41_reg * R11_Q16_16;
+                    kr_42 <= k42_reg * R22_Q16_16;
+                    kr_43 <= k43_reg * R33_Q16_16;
+
+                    kr_51 <= k51_reg * R11_Q16_16;
+                    kr_52 <= k52_reg * R22_Q16_16;
+                    kr_53 <= k53_reg * R33_Q16_16;
+
+                    kr_61 <= k61_reg * R11_Q16_16;
+                    kr_62 <= k62_reg * R22_Q16_16;
+                    kr_63 <= k63_reg * R33_Q16_16;
+
+                    state <= WAIT_KR;
+
+                when WAIT_KR =>
+
+                    state <= COMPUTE_KRK;
+
+                when COMPUTE_KRK =>
+
+                    krk_11 <= resize(shift_right(kr_11 * k11_reg, 2*Q), 96) + resize(shift_right(kr_12 * k12_reg, 2*Q), 96) + resize(shift_right(kr_13 * k13_reg, 2*Q), 96);
+
+                    krk_12 <= resize(shift_right(kr_11 * k21_reg, 2*Q), 96) + resize(shift_right(kr_12 * k22_reg, 2*Q), 96) + resize(shift_right(kr_13 * k23_reg, 2*Q), 96);
+
+                    krk_13 <= resize(shift_right(kr_11 * k31_reg, 2*Q), 96) + resize(shift_right(kr_12 * k32_reg, 2*Q), 96) + resize(shift_right(kr_13 * k33_reg, 2*Q), 96);
+
+                    krk_14 <= resize(shift_right(kr_11 * k41_reg, 2*Q), 96) + resize(shift_right(kr_12 * k42_reg, 2*Q), 96) + resize(shift_right(kr_13 * k43_reg, 2*Q), 96);
+
+                    krk_15 <= resize(shift_right(kr_11 * k51_reg, 2*Q), 96) + resize(shift_right(kr_12 * k52_reg, 2*Q), 96) + resize(shift_right(kr_13 * k53_reg, 2*Q), 96);
+
+                    krk_16 <= resize(shift_right(kr_11 * k61_reg, 2*Q), 96) + resize(shift_right(kr_12 * k62_reg, 2*Q), 96) + resize(shift_right(kr_13 * k63_reg, 2*Q), 96);
+
+                    krk_22 <= resize(shift_right(kr_21 * k21_reg, 2*Q), 96) + resize(shift_right(kr_22 * k22_reg, 2*Q), 96) + resize(shift_right(kr_23 * k23_reg, 2*Q), 96);
+
+                    krk_23 <= resize(shift_right(kr_21 * k31_reg, 2*Q), 96) + resize(shift_right(kr_22 * k32_reg, 2*Q), 96) + resize(shift_right(kr_23 * k33_reg, 2*Q), 96);
+
+                    krk_24 <= resize(shift_right(kr_21 * k41_reg, 2*Q), 96) + resize(shift_right(kr_22 * k42_reg, 2*Q), 96) + resize(shift_right(kr_23 * k43_reg, 2*Q), 96);
+
+                    krk_25 <= resize(shift_right(kr_21 * k51_reg, 2*Q), 96) + resize(shift_right(kr_22 * k52_reg, 2*Q), 96) + resize(shift_right(kr_23 * k53_reg, 2*Q), 96);
+
+                    krk_26 <= resize(shift_right(kr_21 * k61_reg, 2*Q), 96) + resize(shift_right(kr_22 * k62_reg, 2*Q), 96) + resize(shift_right(kr_23 * k63_reg, 2*Q), 96);
+
+                    krk_33 <= resize(shift_right(kr_31 * k31_reg, 2*Q), 96) + resize(shift_right(kr_32 * k32_reg, 2*Q), 96) + resize(shift_right(kr_33 * k33_reg, 2*Q), 96);
+
+                    krk_34 <= resize(shift_right(kr_31 * k41_reg, 2*Q), 96) + resize(shift_right(kr_32 * k42_reg, 2*Q), 96) + resize(shift_right(kr_33 * k43_reg, 2*Q), 96);
+
+                    krk_35 <= resize(shift_right(kr_31 * k51_reg, 2*Q), 96) + resize(shift_right(kr_32 * k52_reg, 2*Q), 96) + resize(shift_right(kr_33 * k53_reg, 2*Q), 96);
+
+                    krk_36 <= resize(shift_right(kr_31 * k61_reg, 2*Q), 96) + resize(shift_right(kr_32 * k62_reg, 2*Q), 96) + resize(shift_right(kr_33 * k63_reg, 2*Q), 96);
+
+                    krk_44 <= resize(shift_right(kr_41 * k41_reg, 2*Q), 96) + resize(shift_right(kr_42 * k42_reg, 2*Q), 96) + resize(shift_right(kr_43 * k43_reg, 2*Q), 96);
+
+                    krk_45 <= resize(shift_right(kr_41 * k51_reg, 2*Q), 96) + resize(shift_right(kr_42 * k52_reg, 2*Q), 96) + resize(shift_right(kr_43 * k53_reg, 2*Q), 96);
+
+                    krk_46 <= resize(shift_right(kr_41 * k61_reg, 2*Q), 96) + resize(shift_right(kr_42 * k62_reg, 2*Q), 96) + resize(shift_right(kr_43 * k63_reg, 2*Q), 96);
+
+                    krk_55 <= resize(shift_right(kr_51 * k51_reg, 2*Q), 96) + resize(shift_right(kr_52 * k52_reg, 2*Q), 96) + resize(shift_right(kr_53 * k53_reg, 2*Q), 96);
+
+                    krk_56 <= resize(shift_right(kr_51 * k61_reg, 2*Q), 96) + resize(shift_right(kr_52 * k62_reg, 2*Q), 96) + resize(shift_right(kr_53 * k63_reg, 2*Q), 96);
+
+                    krk_66 <= resize(shift_right(kr_61 * k61_reg, 2*Q), 96) + resize(shift_right(kr_62 * k62_reg, 2*Q), 96) + resize(shift_right(kr_63 * k63_reg, 2*Q), 96);
+
+                    state <= ADD_APAT_KRK;
+
+                when ADD_APAT_KRK =>
+
+                    p11_upd <= resize(apat_11 + krk_11, 48);
+                    p12_upd <= resize(apat_12 + krk_12, 48);
+                    p13_upd <= resize(apat_13 + krk_13, 48);
+                    p14_upd <= resize(apat_14 + krk_14, 48);
+                    p15_upd <= resize(apat_15 + krk_15, 48);
+                    p16_upd <= resize(apat_16 + krk_16, 48);
+
+                    p22_upd <= resize(apat_22 + krk_22, 48);
+                    p23_upd <= resize(apat_23 + krk_23, 48);
+                    p24_upd <= resize(apat_24 + krk_24, 48);
+                    p25_upd <= resize(apat_25 + krk_25, 48);
+                    p26_upd <= resize(apat_26 + krk_26, 48);
+
+                    p33_upd <= resize(apat_33 + krk_33, 48);
+                    p34_upd <= resize(apat_34 + krk_34, 48);
+                    p35_upd <= resize(apat_35 + krk_35, 48);
+                    p36_upd <= resize(apat_36 + krk_36, 48);
+
+                    p44_upd <= resize(apat_44 + krk_44, 48);
+                    p45_upd <= resize(apat_45 + krk_45, 48);
+                    p46_upd <= resize(apat_46 + krk_46, 48);
+
+                    p55_upd <= resize(apat_55 + krk_55, 48);
+                    p56_upd <= resize(apat_56 + krk_56, 48);
+
+                    p66_upd <= resize(apat_66 + krk_66, 48);
+
+                    state <= FINISHED;
+
+                when FINISHED =>
+                    done <= '1';
+                    if start = '0' then
+                        state <= IDLE;
+                    end if;
+
+            end case;
+        end if;
+    end process;
+
+end Behavioral;

@@ -1,0 +1,55 @@
+=== SR-UKF F1 f1_monaco (50 cycles) ===
+Cycles: 50
+
+Cycle 0: x_pos=182695 x_vel=-2 x_acc=-1 y_pos=-317013 y_vel=-2 y_acc=-1 z_pos=182197 z_vel=-2 z_acc=-1
+Cycle 1: x_pos=-355563 x_vel=-13187 x_acc=-230 y_pos=-1274883 y_vel=-23455 y_acc=-396 z_pos=-85959 z_vel=-6577 z_acc=-124
+Cycle 2: x_pos=-918600 x_vel=-31146 x_acc=-1130 y_pos=-2808451 y_vel=-72374 y_acc=-2834 z_pos=135986 z_vel=494 z_acc=223
+Cycle 3: x_pos=-1231944 x_vel=-43680 x_acc=-2255 y_pos=-3880586 y_vel=-115241 y_acc=-6674 z_pos=66232 z_vel=-2302 z_acc=-36
+Cycle 4: x_pos=-1371319 x_vel=-50408 x_acc=-3149 y_pos=-4698283 y_vel=-154649 y_acc=-11870 z_pos=311200 z_vel=9487 z_acc=1515
+Cycle 5: x_pos=-1974958 x_vel=-84493 x_acc=-9146 y_pos=-5898730 y_vel=-222484 y_acc=-23787 z_pos=-27603 z_vel=-9627 z_acc=-1865
+Cycle 6: x_pos=-2191618 x_vel=-98639 x_acc=-12237 y_pos=-7167011 y_vel=-304977 y_acc=-41891 z_pos=-50539 z_vel=-11150 z_acc=-2200
+Cycle 7: x_pos=-2590169 x_vel=-128043 x_acc=-19967 y_pos=-8607421 y_vel=-411254 y_acc=-69843 z_pos=5336 z_vel=-7077 z_acc=-1119
+Cycle 8: x_pos=-3077937 x_vel=-168396 x_acc=-32319 y_pos=-9665478 y_vel=-499093 y_acc=-96550 z_pos=-39963 z_vel=-10827 z_acc=-2277
+Cycle 9: x_pos=-2986334 x_vel=-160374 x_acc=-29273 y_pos=-10865179 y_vel=-609747 y_acc=-134820 z_pos=144148 z_vel=5962 z_acc=3642
+Cycle 10: x_pos=-3604337 x_vel=-222875 x_acc=-53675 y_pos=-12265440 y_vel=-752211 y_acc=-189894 z_pos=-254165 z_vel=-34092 z_acc=-12176
+Cycle 11: x_pos=-4420188 x_vel=-313436 x_acc=-92590 y_pos=-13033628 y_vel=-839071 y_acc=-226017 z_pos=-163306 z_vel=-24248 z_acc=-7796
+Cycle 12: x_pos=-4507961 x_vel=-325083 x_acc=-97240 y_pos=-14473921 y_vel=-1014682 y_acc=-307176 z_pos=-168694 z_vel=-24999 z_acc=-8085
+Cycle 13: x_pos=-5130850 x_vel=-407427 x_acc=-138438 y_pos=-16055881 y_vel=-1224502 y_acc=-411536 z_pos=160353 z_vel=17813 z_acc=13926
+Cycle 14: x_pos=-5390432 x_vel=-445658 x_acc=-157897 y_pos=-17484434 y_vel=-1430732 y_acc=-520201 z_pos=282938 z_vel=35319 z_acc=23375
+Cycle 15: x_pos=-6386616 x_vel=-598886 x_acc=-245481 y_pos=-19542090 y_vel=-1749545 y_acc=-700186 z_pos=-31353 z_vel=-12103 z_acc=-4575
+Cycle 16: x_pos=-7004146 x_vel=-702735 x_acc=-306491 y_pos=-22009886 y_vel=-2161015 y_acc=-945302 z_pos=-59083 z_vel=-16692 z_acc=-7351
+Cycle 17: x_pos=-7627608 x_vel=-815629 x_acc=-375682 y_pos=-23809760 y_vel=-2487655 y_acc=-1144724 z_pos=-33625 z_vel=-12328 z_acc=-4432
+Cycle 18: x_pos=-8294152 x_vel=-945028 x_acc=-458282 y_pos=-25973462 y_vel=-2906779 y_acc=-1413235 z_pos=134059 z_vel=19053 z_acc=16889
+Cycle 19: x_pos=-9364297 x_vel=-1164615 x_acc=-606746 y_pos=-28121602 y_vel=-3353362 y_acc=-1708375 z_pos=-225342 z_vel=-52639 z_acc=-33933
+Cycle 20: x_pos=-9951322 x_vel=-1297016 x_acc=-694747 y_pos=-30096790 y_vel=-3794620 y_acc=-2006216 z_pos=-49154 z_vel=-15504 z_acc=-6269
+Cycle 21: x_pos=-10700782 x_vel=-1475192 x_acc=-818949 y_pos=-31844633 y_vel=-4214341 y_acc=-2293193 z_pos=61031 z_vel=9458 z_acc=12693
+Cycle 22: x_pos=-11458142 x_vel=-1667181 x_acc=-955693 y_pos=-34127804 y_vel=-4790704 y_acc=-2706284 z_pos=-30608 z_vel=-12455 z_acc=-4568
+Cycle 23: x_pos=-11784100 x_vel=-1761170 x_acc=-1015583 y_pos=-36425398 y_vel=-5408467 y_acc=-3157035 z_pos=-97214 z_vel=-29544 z_acc=-18162
+Cycle 24: x_pos=-12754085 x_vel=-2035066 x_acc=-1223309 y_pos=-38355125 y_vel=-5965694 y_acc=-3561770 z_pos=25962 z_vel=3669 z_acc=9342
+Cycle 25: x_pos=-13789864 x_vel=-2345218 x_acc=-1462439 y_pos=-40343920 y_vel=-6573573 y_acc=-4010964 z_pos=-597959 z_vel=-175337 z_acc=-140653
+Cycle 26: x_pos=-14187559 x_vel=-2480861 x_acc=-1553241 y_pos=-42549533 y_vel=-7283143 y_acc=-4548072 z_pos=-52062 z_vel=-11384 z_acc=1670
+Cycle 27: x_pos=-14739413 x_vel=-2672792 x_acc=-1692930 y_pos=-44806849 y_vel=-8050576 y_acc=-5135473 z_pos=-276764 z_vel=-83296 z_acc=-60807
+Cycle 28: x_pos=-15660594 x_vel=-2999822 x_acc=-1951470 y_pos=-46900963 y_vel=-8806314 y_acc=-5711357 z_pos=-474704 z_vel=-150851 z_acc=-119314
+Cycle 29: x_pos=-16828318 x_vel=-3433136 x_acc=-2303984 y_pos=-48652613 y_vel=-9481119 y_acc=-6212560 z_pos=-87841 z_vel=-14418 z_acc=4803
+Cycle 30: x_pos=-17402528 x_vel=-3668466 x_acc=-2475271 y_pos=-50675026 y_vel=-10291632 y_acc=-6833655 z_pos=58976 z_vel=40790 z_acc=54679
+Cycle 31: x_pos=-17851963 x_vel=-3865899 x_acc=-2610600 y_pos=-52566117 y_vel=-11091547 y_acc=-7440425 z_pos=-190905 z_vel=-56870 z_acc=-35665
+Cycle 32: x_pos=-18919171 x_vel=-4327325 x_acc=-2988536 y_pos=-54582481 y_vel=-11981982 y_acc=-8125360 z_pos=-12474 z_vel=16685 z_acc=32926
+Cycle 33: x_pos=-19473071 x_vel=-4589627 x_acc=-3177130 y_pos=-56488038 y_vel=-12866621 y_acc=-8797816 z_pos=98565 z_vel=65367 z_acc=77646
+Cycle 34: x_pos=-20158288 x_vel=-4922725 x_acc=-3429921 y_pos=-58724659 y_vel=-13941783 y_acc=-9641100 z_pos=49984 z_vel=44221 z_acc=56361
+Cycle 35: x_pos=-21182460 x_vel=-5431677 x_acc=-3845405 y_pos=-60393438 y_vel=-14795367 y_acc=-10264541 z_pos=103248 z_vel=70275 z_acc=79878
+Cycle 36: x_pos=-22033719 x_vel=-5877946 x_acc=-4195691 y_pos=-63097729 y_vel=-16198723 y_acc=-11400744 z_pos=-44534 z_vel=-2417 z_acc=9423
+Cycle 37: x_pos=-23683084 x_vel=-6758271 x_acc=-4954181 y_pos=-65592221 y_vel=-17554665 y_acc=-12474979 z_pos=-155468 z_vel=-59917 z_acc=-45522
+Cycle 38: x_pos=-24817057 x_vel=-7399151 x_acc=-5471936 y_pos=-69682749 y_vel=-19833269 y_acc=-14414030 z_pos=-435247 z_vel=-212092 z_acc=-190074
+Cycle 39: x_pos=-26186074 x_vel=-8199335 x_acc=-6133787 y_pos=-72926725 y_vel=-21732103 y_acc=-15957219 z_pos=-212713 z_vel=-87471 z_acc=-67018
+Cycle 40: x_pos=-27850987 x_vel=-9206608 x_acc=-6983088 y_pos=-76820879 y_vel=-24089964 y_acc=-17914623 z_pos=-309751 z_vel=-145013 z_acc=-120982
+Cycle 41: x_pos=-28874920 x_vel=-9860949 x_acc=-7477941 y_pos=-80607001 y_vel=-26474526 y_acc=-19862844 z_pos=190096 z_vel=161208 z_acc=175783
+Cycle 42: x_pos=-30879950 x_vel=-11163433 x_acc=-8587307 y_pos=-84223128 y_vel=-28839364 y_acc=-21756151 z_pos=-194923 z_vel=-83108 z_acc=-62703
+Cycle 43: x_pos=-32221266 x_vel=-12075283 x_acc=-9299608 y_pos=-87838271 y_vel=-31285996 y_acc=-23692139 z_pos=-149006 z_vel=-52811 z_acc=-32336
+Cycle 44: x_pos=-33625747 x_vel=-13060119 x_acc=-10068284 y_pos=-91356894 y_vel=-33746894 y_acc=-25604227 z_pos=-77396 z_vel=-3464 z_acc=15780
+Cycle 45: x_pos=-34907945 x_vel=-13988282 x_acc=-10767151 y_pos=-94981885 y_vel=-36359500 y_acc=-27624131 z_pos=-161079 z_vel=-62792 z_acc=-41584
+Cycle 46: x_pos=-36884735 x_vel=-15455701 x_acc=-11969746 y_pos=-98806524 y_vel=-39196168 y_acc=-29818171 z_pos=112490 z_vel=139414 z_acc=153466
+Cycle 47: x_pos=-37939743 x_vel=-16263453 x_acc=-12514845 y_pos=-102308881 y_vel=-41866035 y_acc=-31806980 z_pos=-269928 z_vel=-152010 z_acc=-129048
+Cycle 48: x_pos=-39044113 x_vel=-17127464 x_acc=-13102359 y_pos=-104077108 y_vel=-43232819 y_acc=-32506508 z_pos=-137662 z_vel=-47643 z_acc=-26631
+Cycle 49: x_pos=-39952278 x_vel=-17849016 x_acc=-13541347 y_pos=-105826449 y_vel=-44599735 y_acc=-33191365 z_pos=-291695 z_vel=-173118 z_acc=-146018
+
+=== Simulation Complete ===

@@ -1,0 +1,168 @@
+===============================================================================
+     CONSTANT ACCELERATION (CA) UNSCENTED KALMAN FILTER - VHDL IMPLEMENTATION
+===============================================================================
+
+1. OVERVIEW
+-----------
+The Constant Acceleration UKF tracks a 3D target by estimating position,
+velocity, and acceleration for each axis (X, Y, Z). It assumes acceleration
+remains roughly constant between measurement updates.
+
+  State vector (9 states):
+    x = [x_pos, x_vel, x_acc, y_pos, y_vel, y_acc, z_pos, z_vel, z_acc]
+
+  Measurements (3 observations):
+    z = [z_x, z_y, z_z]   (position-only, no velocity or acceleration sensors)
+
+  Fixed-point format: Q24.24 (48-bit signed, 24 integer + 24 fractional bits)
+  Sampling period: dt = 0.02 s (50 Hz)
+  Sigma points: 2n+1 = 19 points (n=9 states)
+
+
+2. MOTION MODEL (Constant Acceleration)
+----------------------------------------
+The CA model propagates each sigma point through:
+
+    pos' = pos + vel * dt + 0.5 * acc * dt^2
+    vel' = vel + acc * dt
+    acc' = acc                                    (acceleration is constant)
+
+This is applied identically to all 3 axes (X, Y, Z).
+
+Key property: The acceleration state is persistent -- the filter "remembers"
+acceleration between cycles. This works well when the target maintains steady
+maneuvers (e.g., circular orbits, constant-rate turns).
+
+
+3. UKF ALGORITHM FLOW
+----------------------
+Each measurement cycle executes these phases sequentially:
+
+  Phase 1: PREDICTION
+    a) Sigma point generation (sigma_3d.vhd)
+       - Cholesky decomposition of 9x9 covariance P (cholsky_9.vhd)
+       - Generate 19 sigma points around current state estimate
+    b) Sigma point propagation (predicti_ca3d.vhd)
+       - Pass each sigma point through CA motion model
+       - Latency: ~4 clock cycles
+    c) Predicted mean (predicted_mean_3d.vhd)
+       - Weighted average of 19 propagated sigma points
+    d) Predicted covariance (covariance_reconstruct_3d.vhd)
+       - 9x9 symmetric matrix (45 unique elements) from sigma point deviations
+    e) Process noise addition (process_noise_3d.vhd)
+       - P_pred = P_reconstruct + Q (diagonal Q matrix)
+
+  Phase 2: MEASUREMENT UPDATE
+    a) Measurement mean (measurement_mean_3d.vhd)
+       - Predicted measurements from sigma points (H = position extraction)
+    b) Innovation (innovation_3d.vhd)
+       - Residual: nu = z_meas - z_predicted
+    c) Innovation covariance (innovation_covariance_3d.vhd)
+       - S = sum(W_i * dz_i * dz_i^T) + R    (3x3 matrix)
+    d) Cross-covariance (cross_covariance_3d.vhd)
+       - Pxz = sum(W_i * dx_i * dz_i^T)      (9x3 matrix)
+    e) Kalman gain (kalman_gain_3d.vhd)
+       - K = Pxz * S^-1                        (9x3 matrix)
+       - Uses matrix_inverse_3x3.vhd for S inversion
+    f) State update (state_update_3d.vhd)
+       - x_upd = x_pred + K * nu
+       - P_upd = (I - K*H) * P_pred * (I - K*H)^T + K*R*K^T  (Joseph form)
+
+
+4. MODULE HIERARCHY
+-------------------
+  ukf_supreme_3d.vhd                     [Top-level coordinator / FSM]
+    |
+    +-- prediction_phase_3d.vhd           [Prediction phase wrapper]
+    |     +-- cholsky_9.vhd               [9x9 Cholesky decomposition]
+    |     |     +-- sqrt_cordic.vhd       [CORDIC square root]
+    |     |     +-- cholesky_col2_parallel.vhd
+    |     |     +-- cholesky_col3_parallel.vhd
+    |     |     +-- cholesky_col4_parallel.vhd
+    |     |     +-- cholesky_col5_parallel.vhd
+    |     |     +-- cholesky_col678_parallel.vhd
+    |     |     +-- cholesky_multiplier_array.vhd
+    |     +-- sigma_3d.vhd               [Sigma point generation]
+    |     +-- predicti_ca3d.vhd           [CA motion model propagation]
+    |     +-- predicted_mean_3d.vhd       [Weighted mean of sigma points]
+    |     +-- covariance_reconstruct_3d.vhd  [P from sigma point deviations]
+    |     +-- process_noise_3d.vhd        [Add diagonal Q to P]
+    |
+    +-- measurement_update_3d.vhd         [Measurement update wrapper]
+          +-- measurement_mean_3d.vhd     [Predicted measurement mean]
+          +-- innovation_3d.vhd           [Measurement residual]
+          +-- innovation_covariance_3d.vhd [S = innovation covariance + R]
+          +-- cross_covariance_3d.vhd     [Pxz cross-covariance]
+          +-- kalman_gain_3d.vhd          [K = Pxz * S^-1]
+          |     +-- matrix_inverse_3x3.vhd [Cramer's rule 3x3 inverse]
+          +-- state_update_3d.vhd         [Joseph-form covariance update]
+
+
+5. KEY PARAMETERS (Drone Tracking Configuration)
+-------------------------------------------------
+  Process noise Q (diagonal):
+    Q_pos = 0.05 m^2           (838,861 in Q24.24)
+    Q_vel = 0.00025 (m/s)^2    (4,194 in Q24.24)
+    Q_acc = 0.00001 (m/s^2)^2  (168 in Q24.24)
+
+  Measurement noise R (diagonal):
+    R_x = R_y = R_z = 0.25 m^2 (4,194,304 in Q24.24)
+
+  Initial covariance P_INIT:
+    P_pos = 5.0 m^2
+    P_vel = 20.0 (m/s)^2
+    P_acc = 0.01 (m/s^2)^2
+
+  UKF weights (n=9, alpha=1, beta=2, kappa=0):
+    W_mean[0] = 0.0, W_cov[0] = 2.0
+    W_mean[i] = W_cov[i] = 1/18 = 0.05556  (i = 1..18)
+
+
+6. PERFORMANCE
+--------------
+  Drone dataset (500 cycles, 50 Hz):  RMSE_3D = 1.55 m
+  Stability: Not diverging (ratio < 2.0)
+
+
+7. FILE LIST (23 modules)
+--------------------------
+  cholsky_9.vhd                 - 9x9 Cholesky decomposition (L*L^T = P)
+  cholesky_col2_parallel.vhd    - Cholesky column 2 parallel compute
+  cholesky_col3_parallel.vhd    - Cholesky column 3 parallel compute
+  cholesky_col4_parallel.vhd    - Cholesky column 4 parallel compute
+  cholesky_col5_parallel.vhd    - Cholesky column 5 parallel compute
+  cholesky_col678_parallel.vhd  - Cholesky columns 6-8 parallel compute
+  cholesky_multiplier_array.vhd - Shared multiplier for Cholesky
+  covariance_reconstruct_3d.vhd - Reconstruct P from sigma point deviations
+  cross_covariance_3d.vhd       - Pxz cross-covariance (9x3)
+  innovation_3d.vhd             - Measurement residual nu = z - z_hat
+  innovation_covariance_3d.vhd  - S = sum(W*dz*dz^T) + R (3x3)
+  kalman_gain_3d.vhd            - K = Pxz * inv(S) (9x3)
+  matrix_inverse_3x3.vhd        - 3x3 matrix inverse (Cramer's rule)
+  measurement_mean_3d.vhd       - Predicted measurement from sigma points
+  measurement_update_3d.vhd     - Measurement update phase wrapper
+  predicted_mean_3d.vhd         - Predicted state mean from sigma points
+  predicti_ca3d.vhd             - CA motion model (19 sigma points)
+  prediction_phase_3d.vhd       - Prediction phase wrapper
+  process_noise_3d.vhd          - Add diagonal Q to predicted P
+  sigma_3d.vhd                  - Generate 19 sigma points from state + P
+  sqrt_cordic.vhd               - Fixed-point square root (CORDIC algorithm)
+  state_update_3d.vhd           - Joseph-form state/covariance update
+  ukf_supreme_3d.vhd            - Top-level UKF coordinator FSM
+
+
+8. STRENGTHS AND LIMITATIONS
+-----------------------------
+  Strengths:
+    + Simple motion model (4 cycles latency per sigma point)
+    + Well-suited for targets with sustained acceleration
+    + Robust with position-only measurements
+    + Numerically stable Joseph-form covariance update
+
+  Limitations:
+    - Assumes constant acceleration (poor for jerk-dominant motion)
+    - No acceleration decay model (accumulated acceleration errors persist)
+    - 9 states with only 3 measurements = poorly observable acc states
+    - Requires careful Q tuning to avoid divergence
+
+===============================================================================

@@ -1,0 +1,223 @@
+===============================================================================
+     SINGER'S MOTION MODEL UNSCENTED KALMAN FILTER - VHDL IMPLEMENTATION
+===============================================================================
+
+1. OVERVIEW
+-----------
+The Singer UKF models target acceleration as a first-order Markov process
+that decays exponentially toward a baseline value. This is more realistic
+than constant acceleration for maneuvering targets, as it assumes the target
+cannot sustain arbitrary acceleration indefinitely.
+
+  State vector (9 states):
+    x = [x_pos, x_vel, x_acc, y_pos, y_vel, y_acc, z_pos, z_vel, z_acc]
+
+  Measurements (3 observations):
+    z = [z_x, z_y, z_z]   (position-only)
+
+  Fixed-point format: Q24.24 (48-bit signed, 24 integer + 24 fractional bits)
+  Sampling period: dt = 0.02 s (50 Hz)
+  Sigma points: 2n+1 = 19 points (n=9 states)
+
+
+2. MOTION MODEL (Singer's Acceleration Model)
+-----------------------------------------------
+Singer's model introduces exponential decay of acceleration toward a
+baseline mean (a_mean). The key parameter is TAU (time constant):
+
+    acc' = a_mean + (acc - a_mean) * exp(-dt/TAU)
+    vel' = vel + (acc - a_mean) * TAU * [1 - exp(-dt/TAU)] + a_mean * dt
+    pos' = pos + vel*dt + (acc - a_mean)*[dt - TAU*(1 - exp(-dt/TAU))]
+                        + a_mean * 0.5 * dt^2
+
+Parameters:
+    TAU = 2.0 s       Time constant for acceleration decay
+    sigma_a = 5.0 m/s^2  Acceleration standard deviation
+    a_mean = 0.0 m/s^2   Baseline acceleration (configurable at runtime)
+
+When TAU -> infinity, Singer's model reduces to constant acceleration.
+When TAU -> 0, acceleration decays instantly (constant velocity).
+
+Key property: exp(-dt/TAU) controls how much acceleration persists.
+  With TAU=2.0 and dt=0.02: exp(-0.01) = 0.99 (99% retention per step)
+  Over 1 second (50 steps): 0.99^50 = 0.605 (40% decay)
+
+The exponential is computed via CORDIC (exp_cordic.vhd).
+
+
+3. UKF ALGORITHM FLOW
+----------------------
+The algorithm follows the same predict-update structure as CA UKF, but
+with Singer's prediction model and Singer-specific process noise:
+
+  Phase 1: PREDICTION (via prediction_phase_p_3d.vhd)
+    a) Cholesky decomposition of diagonal P (off-diag inputs zeroed)
+    b) Sigma point generation (sigma_3d.vhd)
+    c) Singer model propagation (predicti_singer3d.vhd)
+       - Uses exp_cordic.vhd for exp(-dt/TAU) computation
+       - Latency: ~31 clock cycles (vs 4 for CA model)
+    d) Predicted mean (predicted_mean_3d.vhd)
+    e) Covariance reconstruction (covariance_reconstruct_3d.vhd)
+    f) Singer process noise addition (process_noise_singer_p_3d.vhd)
+       - Diagonal Q with analytical Singer noise values
+       - Includes saturation at MAX_VALUE = 2^31-1
+
+  Phase 2: MEASUREMENT UPDATE (via measurement_update_3d.vhd)
+    a-f) Same as CA UKF (innovation, S, Pxz, K, Joseph update)
+
+
+4. MODULE HIERARCHY (Active Instantiation Path)
+-------------------------------------------------
+  ukf_supreme_3d.vhd                     [Top-level coordinator / FSM]
+    |
+    +-- prediction_phase_p_3d.vhd         [Prediction phase (P-matrix path)]
+    |     +-- cholsky_9.vhd               [9x9 Cholesky decomposition]
+    |     |     +-- sqrt_cordic.vhd       [CORDIC square root]
+    |     |     +-- cholesky_col2_parallel.vhd .. cholesky_col678_parallel.vhd
+    |     |     +-- cholesky_multiplier_array.vhd
+    |     +-- sigma_3d.vhd               [Sigma point generation]
+    |     +-- predicti_singer3d.vhd       [Singer motion model]
+    |     |     +-- exp_cordic.vhd        [CORDIC exponential for e^(-dt/tau)]
+    |     +-- predicted_mean_3d.vhd       [Weighted mean]
+    |     +-- covariance_reconstruct_3d.vhd  [P reconstruction]
+    |     +-- process_noise_singer_p_3d.vhd  [Singer Q + saturation]
+    |
+    +-- measurement_update_3d.vhd         [Measurement update wrapper]
+          +-- measurement_mean_3d.vhd
+          +-- innovation_3d.vhd
+          +-- innovation_covariance_3d.vhd
+          +-- cross_covariance_3d.vhd
+          +-- kalman_gain_3d.vhd
+          |     +-- matrix_inverse_3x3.vhd
+          +-- state_update_3d.vhd
+
+
+5. KEY PARAMETERS (Drone Tracking Configuration)
+-------------------------------------------------
+  Singer model parameters:
+    TAU     = 2.0 s        (33,554,432 in Q24.24)
+    SIGMA_A = 5.0 m/s^2    (83,886,080 in Q24.24)
+    DT      = 0.02 s       (335,544 in Q24.24)
+
+  Process noise Q (diagonal, analytical Singer values):
+    Q_pos = 0.000017 m^2           (277 in Q24.24)
+    Q_vel = 0.009934 (m/s)^2       (166,659 in Q24.24)
+    Q_acc = 0.247517 (m/s^2)^2     (4,152,639 in Q24.24)
+
+  Measurement noise R (diagonal):
+    R_x = R_y = R_z = 0.25 m^2    (4,194,304 in Q24.24)
+
+  Initial covariance P_INIT:
+    P_pos = 10.0 m^2
+    P_vel = 100.0 (m/s)^2
+    P_acc = 0.01 (m/s^2)^2
+
+  Kalman gain saturation: +/- 8.0 (134,217,728 in Q24.24)
+  P saturation: MAX_VALUE = 2^31 - 1 (prevents covariance explosion)
+
+  UKF weights (n=9, alpha=1, beta=2, kappa=0):
+    W_mean[0] = 0.0, W_cov[0] = 2.0
+    W_mean[i] = W_cov[i] = 1/18 = 0.05556  (i = 1..18)
+
+
+6. ARCHITECTURAL NOTES
+-----------------------
+  a) THREE process noise files exist -- ONLY ONE IS ACTIVE:
+       process_noise_singer_3d.vhd         -- NOT USED (dead code)
+       process_noise_singer_3d_simple.vhd  -- NOT USED (L-path variant)
+       process_noise_singer_p_3d.vhd       -- ACTIVE (P-matrix path)
+
+     The top-level ukf_supreme_3d.vhd instantiates prediction_phase_p_3d,
+     which uses process_noise_singer_p_3d.
+
+  b) Diagonal-P architecture:
+     Off-diagonal P elements are zeroed at the Cholesky input in
+     prediction_phase_p_3d.vhd. This forces a diagonal-only covariance
+     decomposition, which is always positive semi-definite. The Joseph-form
+     update produces full off-diagonal terms, but they are discarded at the
+     next prediction cycle.
+
+  c) Additional (unused) modules in the source directory:
+       prediction_phase_3d.vhd             -- L-factor path (not used)
+       process_noise_3d.vhd                -- CA-style Q (not used)
+       process_noise_rank1_3d.vhd          -- Rank-1 update variant
+       qr_decomp_9x19.vhd                 -- QR decomposition (unused)
+       cholesky_rank1_update.vhd           -- Square-root rank-1 update
+       cholesky_rank1_downdate.vhd         -- Square-root rank-1 downdate
+       state_update_joseph_3d.vhd          -- Alternative Joseph form
+       state_update_potter_3d.vhd          -- Potter square-root update
+       measurement_update_joseph_3d.vhd    -- Alternative measurement update
+       ukf_supreme_3d_L_version_backup.vhd -- Backup of L-factor top-level
+       amigo.vhd                           -- Utility module
+       predicti_ca3d.vhd                   -- CA model (kept for comparison)
+
+
+7. PERFORMANCE
+--------------
+  Drone dataset (500 cycles, 50 Hz):  RMSE_3D = 1.51 m
+  Stability: Not diverging (ratio < 2.0)
+  Python reference (diagonal-P):      RMSE_3D = 0.69 m
+
+
+8. FILE LIST (38 modules, 15 active + 23 unused/utility)
+----------------------------------------------------------
+  ACTIVE MODULES (instantiated by ukf_supreme_3d):
+    ukf_supreme_3d.vhd              - Top-level UKF coordinator FSM
+    prediction_phase_p_3d.vhd       - Singer prediction phase (P-matrix path)
+    predicti_singer3d.vhd           - Singer motion model (19 sigma points)
+    exp_cordic.vhd                  - CORDIC exponential e^(-dt/tau)
+    process_noise_singer_p_3d.vhd   - Singer diagonal Q with saturation
+    cholsky_9.vhd                   - 9x9 Cholesky decomposition
+    cholesky_col2_parallel.vhd      - Cholesky column 2
+    cholesky_col3_parallel.vhd      - Cholesky column 3
+    cholesky_col4_parallel.vhd      - Cholesky column 4
+    cholesky_col5_parallel.vhd      - Cholesky column 5
+    cholesky_col678_parallel.vhd    - Cholesky columns 6-8
+    cholesky_multiplier_array.vhd   - Shared multiplier
+    sqrt_cordic.vhd                 - CORDIC square root
+    sigma_3d.vhd                    - Sigma point generation
+    predicted_mean_3d.vhd           - Predicted state mean
+    covariance_reconstruct_3d.vhd   - P reconstruction from sigma points
+    measurement_update_3d.vhd       - Measurement update wrapper
+    measurement_mean_3d.vhd         - Predicted measurement mean
+    innovation_3d.vhd               - Measurement residual
+    innovation_covariance_3d.vhd    - Innovation covariance S + R
+    cross_covariance_3d.vhd         - Pxz cross-covariance
+    kalman_gain_3d.vhd              - Kalman gain K = Pxz * inv(S)
+    matrix_inverse_3x3.vhd          - 3x3 matrix inverse
+    state_update_3d.vhd             - Joseph-form covariance update
+
+  UNUSED/ALTERNATIVE MODULES:
+    prediction_phase_3d.vhd          - L-factor prediction path
+    predicti_ca3d.vhd                - CA model (for comparison)
+    process_noise_3d.vhd             - CA-style process noise
+    process_noise_singer_3d.vhd      - Full Singer Q (dead code)
+    process_noise_singer_3d_simple.vhd - Simple Singer Q (L-path)
+    process_noise_rank1_3d.vhd       - Rank-1 Q update variant
+    qr_decomp_9x19.vhd              - QR decomposition
+    cholesky_rank1_update.vhd        - Rank-1 Cholesky update
+    cholesky_rank1_downdate.vhd      - Rank-1 Cholesky downdate
+    state_update_joseph_3d.vhd       - Alternative Joseph form
+    state_update_potter_3d.vhd       - Potter square-root update
+    measurement_update_joseph_3d.vhd - Alternative measurement update
+    ukf_supreme_3d_L_version_backup.vhd - Backup top-level
+    amigo.vhd                        - Utility module
+
+
+9. STRENGTHS AND LIMITATIONS
+-----------------------------
+  Strengths:
+    + Physically motivated acceleration decay model
+    + TAU parameter controls maneuver persistence
+    + Natural damping prevents unbounded acceleration estimates
+    + Analytical process noise Q derived from Singer theory
+    + Suitable for maneuvering targets (drones, aircraft, missiles)
+
+  Limitations:
+    - Higher prediction latency (~31 cycles vs 4 for CA)
+    - Requires CORDIC exponential hardware (exp_cordic.vhd)
+    - TAU must be tuned per application (2.0s for drone, different for F1)
+    - P saturation needed to prevent covariance explosion
+    - Diagonal-P constraint limits theoretical accuracy
+
+===============================================================================

@@ -1,0 +1,300 @@
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.NUMERIC_STD.ALL;
+
+entity cross_covariance_3d is
+    port (
+        clk   : in  std_logic;
+        start : in  std_logic;
+
+        x_pos_mean, x_vel_mean : in signed(47 downto 0);
+        y_pos_mean, y_vel_mean : in signed(47 downto 0);
+        z_pos_mean, z_vel_mean : in signed(47 downto 0);
+
+        z_x_mean, z_y_mean, z_z_mean : in signed(47 downto 0);
+
+        chi0_x_pos, chi0_x_vel, chi0_y_pos, chi0_y_vel, chi0_z_pos, chi0_z_vel : in signed(47 downto 0);
+        chi1_x_pos, chi1_x_vel, chi1_y_pos, chi1_y_vel, chi1_z_pos, chi1_z_vel : in signed(47 downto 0);
+        chi2_x_pos, chi2_x_vel, chi2_y_pos, chi2_y_vel, chi2_z_pos, chi2_z_vel : in signed(47 downto 0);
+        chi3_x_pos, chi3_x_vel, chi3_y_pos, chi3_y_vel, chi3_z_pos, chi3_z_vel : in signed(47 downto 0);
+        chi4_x_pos, chi4_x_vel, chi4_y_pos, chi4_y_vel, chi4_z_pos, chi4_z_vel : in signed(47 downto 0);
+        chi5_x_pos, chi5_x_vel, chi5_y_pos, chi5_y_vel, chi5_z_pos, chi5_z_vel : in signed(47 downto 0);
+        chi6_x_pos, chi6_x_vel, chi6_y_pos, chi6_y_vel, chi6_z_pos, chi6_z_vel : in signed(47 downto 0);
+        chi7_x_pos, chi7_x_vel, chi7_y_pos, chi7_y_vel, chi7_z_pos, chi7_z_vel : in signed(47 downto 0);
+        chi8_x_pos, chi8_x_vel, chi8_y_pos, chi8_y_vel, chi8_z_pos, chi8_z_vel : in signed(47 downto 0);
+        chi9_x_pos, chi9_x_vel, chi9_y_pos, chi9_y_vel, chi9_z_pos, chi9_z_vel : in signed(47 downto 0);
+        chi10_x_pos, chi10_x_vel, chi10_y_pos, chi10_y_vel, chi10_z_pos, chi10_z_vel : in signed(47 downto 0);
+        chi11_x_pos, chi11_x_vel, chi11_y_pos, chi11_y_vel, chi11_z_pos, chi11_z_vel : in signed(47 downto 0);
+        chi12_x_pos, chi12_x_vel, chi12_y_pos, chi12_y_vel, chi12_z_pos, chi12_z_vel : in signed(47 downto 0);
+
+        pxz_11, pxz_12, pxz_13 : out signed(47 downto 0);
+        pxz_21, pxz_22, pxz_23 : out signed(47 downto 0);
+        pxz_31, pxz_32, pxz_33 : out signed(47 downto 0);
+        pxz_41, pxz_42, pxz_43 : out signed(47 downto 0);
+        pxz_51, pxz_52, pxz_53 : out signed(47 downto 0);
+        pxz_61, pxz_62, pxz_63 : out signed(47 downto 0);
+
+        done : out std_logic
+    );
+end cross_covariance_3d;
+
+architecture Behavioral of cross_covariance_3d is
+
+    constant W0 : signed(47 downto 0) := to_signed(5592405, 48);
+    constant W1 : signed(47 downto 0) := to_signed(932068, 48);
+    constant Q : integer := 24;
+
+    type state_type is (IDLE, COMPUTE_DELTAS, COMPUTE_OUTER, WEIGHT, ADD, NORMALIZE, FINISHED);
+    signal state : state_type := IDLE;
+    signal accumulate_idx : integer range 0 to 12 := 0;
+
+    type state_array is array (0 to 12) of signed(47 downto 0);
+    signal chi_x_pos, chi_x_vel, chi_y_pos, chi_y_vel, chi_z_pos, chi_z_vel : state_array := (others => (others => '0'));
+
+    type weight_array is array (0 to 12) of signed(47 downto 0);
+    constant WEIGHTS : weight_array := (W0, W1, W1, W1, W1, W1, W1, W1, W1, W1, W1, W1, W1);
+
+    signal x_pos_mean_reg, x_vel_mean_reg : signed(47 downto 0);
+    signal y_pos_mean_reg, y_vel_mean_reg : signed(47 downto 0);
+    signal z_pos_mean_reg, z_vel_mean_reg : signed(47 downto 0);
+    signal z_x_mean_reg, z_y_mean_reg, z_z_mean_reg : signed(47 downto 0);
+
+    signal current_weight : signed(47 downto 0);
+
+    signal delta_x_pos, delta_x_vel : signed(47 downto 0) := (others => '0');
+    signal delta_y_pos, delta_y_vel : signed(47 downto 0) := (others => '0');
+    signal delta_z_pos, delta_z_vel : signed(47 downto 0) := (others => '0');
+
+    signal delta_z_x, delta_z_y, delta_z_z : signed(47 downto 0) := (others => '0');
+
+    signal outer_11, outer_12, outer_13 : signed(95 downto 0) := (others => '0');
+    signal outer_21, outer_22, outer_23 : signed(95 downto 0) := (others => '0');
+    signal outer_31, outer_32, outer_33 : signed(95 downto 0) := (others => '0');
+    signal outer_41, outer_42, outer_43 : signed(95 downto 0) := (others => '0');
+    signal outer_51, outer_52, outer_53 : signed(95 downto 0) := (others => '0');
+    signal outer_61, outer_62, outer_63 : signed(95 downto 0) := (others => '0');
+
+    signal weighted_11, weighted_12, weighted_13 : signed(95 downto 0) := (others => '0');
+    signal weighted_21, weighted_22, weighted_23 : signed(95 downto 0) := (others => '0');
+    signal weighted_31, weighted_32, weighted_33 : signed(95 downto 0) := (others => '0');
+    signal weighted_41, weighted_42, weighted_43 : signed(95 downto 0) := (others => '0');
+    signal weighted_51, weighted_52, weighted_53 : signed(95 downto 0) := (others => '0');
+    signal weighted_61, weighted_62, weighted_63 : signed(95 downto 0) := (others => '0');
+
+    signal acc_pxz_11, acc_pxz_12, acc_pxz_13 : signed(43 downto 0) := (others => '0');
+    signal acc_pxz_21, acc_pxz_22, acc_pxz_23 : signed(43 downto 0) := (others => '0');
+    signal acc_pxz_31, acc_pxz_32, acc_pxz_33 : signed(43 downto 0) := (others => '0');
+    signal acc_pxz_41, acc_pxz_42, acc_pxz_43 : signed(43 downto 0) := (others => '0');
+    signal acc_pxz_51, acc_pxz_52, acc_pxz_53 : signed(43 downto 0) := (others => '0');
+    signal acc_pxz_61, acc_pxz_62, acc_pxz_63 : signed(43 downto 0) := (others => '0');
+
+begin
+
+    process(clk)
+    begin
+        if rising_edge(clk) then
+            case state is
+
+                when IDLE =>
+                    done <= '0';
+                    accumulate_idx <= 0;
+
+                    acc_pxz_11 <= (others => '0'); acc_pxz_12 <= (others => '0'); acc_pxz_13 <= (others => '0');
+                    acc_pxz_21 <= (others => '0'); acc_pxz_22 <= (others => '0'); acc_pxz_23 <= (others => '0');
+                    acc_pxz_31 <= (others => '0'); acc_pxz_32 <= (others => '0'); acc_pxz_33 <= (others => '0');
+                    acc_pxz_41 <= (others => '0'); acc_pxz_42 <= (others => '0'); acc_pxz_43 <= (others => '0');
+                    acc_pxz_51 <= (others => '0'); acc_pxz_52 <= (others => '0'); acc_pxz_53 <= (others => '0');
+                    acc_pxz_61 <= (others => '0'); acc_pxz_62 <= (others => '0'); acc_pxz_63 <= (others => '0');
+
+                    if start = '1' then
+
+                        x_pos_mean_reg <= x_pos_mean; x_vel_mean_reg <= x_vel_mean;
+                        y_pos_mean_reg <= y_pos_mean; y_vel_mean_reg <= y_vel_mean;
+                        z_pos_mean_reg <= z_pos_mean; z_vel_mean_reg <= z_vel_mean;
+                        z_x_mean_reg <= z_x_mean; z_y_mean_reg <= z_y_mean; z_z_mean_reg <= z_z_mean;
+
+                        chi_x_pos(0) <= chi0_x_pos; chi_x_vel(0) <= chi0_x_vel;
+                        chi_y_pos(0) <= chi0_y_pos; chi_y_vel(0) <= chi0_y_vel;
+                        chi_z_pos(0) <= chi0_z_pos; chi_z_vel(0) <= chi0_z_vel;
+
+                        chi_x_pos(1) <= chi1_x_pos; chi_x_vel(1) <= chi1_x_vel;
+                        chi_y_pos(1) <= chi1_y_pos; chi_y_vel(1) <= chi1_y_vel;
+                        chi_z_pos(1) <= chi1_z_pos; chi_z_vel(1) <= chi1_z_vel;
+
+                        chi_x_pos(2) <= chi2_x_pos; chi_x_vel(2) <= chi2_x_vel;
+                        chi_y_pos(2) <= chi2_y_pos; chi_y_vel(2) <= chi2_y_vel;
+                        chi_z_pos(2) <= chi2_z_pos; chi_z_vel(2) <= chi2_z_vel;
+
+                        chi_x_pos(3) <= chi3_x_pos; chi_x_vel(3) <= chi3_x_vel;
+                        chi_y_pos(3) <= chi3_y_pos; chi_y_vel(3) <= chi3_y_vel;
+                        chi_z_pos(3) <= chi3_z_pos; chi_z_vel(3) <= chi3_z_vel;
+
+                        chi_x_pos(4) <= chi4_x_pos; chi_x_vel(4) <= chi4_x_vel;
+                        chi_y_pos(4) <= chi4_y_pos; chi_y_vel(4) <= chi4_y_vel;
+                        chi_z_pos(4) <= chi4_z_pos; chi_z_vel(4) <= chi4_z_vel;
+
+                        chi_x_pos(5) <= chi5_x_pos; chi_x_vel(5) <= chi5_x_vel;
+                        chi_y_pos(5) <= chi5_y_pos; chi_y_vel(5) <= chi5_y_vel;
+                        chi_z_pos(5) <= chi5_z_pos; chi_z_vel(5) <= chi5_z_vel;
+
+                        chi_x_pos(6) <= chi6_x_pos; chi_x_vel(6) <= chi6_x_vel;
+                        chi_y_pos(6) <= chi6_y_pos; chi_y_vel(6) <= chi6_y_vel;
+                        chi_z_pos(6) <= chi6_z_pos; chi_z_vel(6) <= chi6_z_vel;
+
+                        chi_x_pos(7) <= chi7_x_pos; chi_x_vel(7) <= chi7_x_vel;
+                        chi_y_pos(7) <= chi7_y_pos; chi_y_vel(7) <= chi7_y_vel;
+                        chi_z_pos(7) <= chi7_z_pos; chi_z_vel(7) <= chi7_z_vel;
+
+                        chi_x_pos(8) <= chi8_x_pos; chi_x_vel(8) <= chi8_x_vel;
+                        chi_y_pos(8) <= chi8_y_pos; chi_y_vel(8) <= chi8_y_vel;
+                        chi_z_pos(8) <= chi8_z_pos; chi_z_vel(8) <= chi8_z_vel;
+
+                        chi_x_pos(9) <= chi9_x_pos; chi_x_vel(9) <= chi9_x_vel;
+                        chi_y_pos(9) <= chi9_y_pos; chi_y_vel(9) <= chi9_y_vel;
+                        chi_z_pos(9) <= chi9_z_pos; chi_z_vel(9) <= chi9_z_vel;
+
+                        chi_x_pos(10) <= chi10_x_pos; chi_x_vel(10) <= chi10_x_vel;
+                        chi_y_pos(10) <= chi10_y_pos; chi_y_vel(10) <= chi10_y_vel;
+                        chi_z_pos(10) <= chi10_z_pos; chi_z_vel(10) <= chi10_z_vel;
+
+                        chi_x_pos(11) <= chi11_x_pos; chi_x_vel(11) <= chi11_x_vel;
+                        chi_y_pos(11) <= chi11_y_pos; chi_y_vel(11) <= chi11_y_vel;
+                        chi_z_pos(11) <= chi11_z_pos; chi_z_vel(11) <= chi11_z_vel;
+
+                        chi_x_pos(12) <= chi12_x_pos; chi_x_vel(12) <= chi12_x_vel;
+                        chi_y_pos(12) <= chi12_y_pos; chi_y_vel(12) <= chi12_y_vel;
+                        chi_z_pos(12) <= chi12_z_pos; chi_z_vel(12) <= chi12_z_vel;
+
+                        state <= COMPUTE_DELTAS;
+                    end if;
+
+                when COMPUTE_DELTAS =>
+
+                    current_weight <= WEIGHTS(accumulate_idx);
+
+                    delta_x_pos <= chi_x_pos(accumulate_idx) - x_pos_mean_reg;
+                    delta_x_vel <= chi_x_vel(accumulate_idx) - x_vel_mean_reg;
+                    delta_y_pos <= chi_y_pos(accumulate_idx) - y_pos_mean_reg;
+                    delta_y_vel <= chi_y_vel(accumulate_idx) - y_vel_mean_reg;
+                    delta_z_pos <= chi_z_pos(accumulate_idx) - z_pos_mean_reg;
+                    delta_z_vel <= chi_z_vel(accumulate_idx) - z_vel_mean_reg;
+
+                    delta_z_x <= chi_x_pos(accumulate_idx) - z_x_mean_reg;
+                    delta_z_y <= chi_y_pos(accumulate_idx) - z_y_mean_reg;
+                    delta_z_z <= chi_z_pos(accumulate_idx) - z_z_mean_reg;
+
+                    state <= COMPUTE_OUTER;
+
+                when COMPUTE_OUTER =>
+
+                    outer_11 <= delta_x_pos * delta_z_x;
+                    outer_12 <= delta_x_pos * delta_z_y;
+                    outer_13 <= delta_x_pos * delta_z_z;
+
+                    outer_21 <= delta_x_vel * delta_z_x;
+                    outer_22 <= delta_x_vel * delta_z_y;
+                    outer_23 <= delta_x_vel * delta_z_z;
+
+                    outer_31 <= delta_y_pos * delta_z_x;
+                    outer_32 <= delta_y_pos * delta_z_y;
+                    outer_33 <= delta_y_pos * delta_z_z;
+
+                    outer_41 <= delta_y_vel * delta_z_x;
+                    outer_42 <= delta_y_vel * delta_z_y;
+                    outer_43 <= delta_y_vel * delta_z_z;
+
+                    outer_51 <= delta_z_pos * delta_z_x;
+                    outer_52 <= delta_z_pos * delta_z_y;
+                    outer_53 <= delta_z_pos * delta_z_z;
+
+                    outer_61 <= delta_z_vel * delta_z_x;
+                    outer_62 <= delta_z_vel * delta_z_y;
+                    outer_63 <= delta_z_vel * delta_z_z;
+
+                    state <= WEIGHT;
+
+                when WEIGHT =>
+
+                    weighted_11 <= resize(outer_11 * current_weight, 96);
+                    weighted_12 <= resize(outer_12 * current_weight, 96);
+                    weighted_13 <= resize(outer_13 * current_weight, 96);
+
+                    weighted_21 <= resize(outer_21 * current_weight, 96);
+                    weighted_22 <= resize(outer_22 * current_weight, 96);
+                    weighted_23 <= resize(outer_23 * current_weight, 96);
+
+                    weighted_31 <= resize(outer_31 * current_weight, 96);
+                    weighted_32 <= resize(outer_32 * current_weight, 96);
+                    weighted_33 <= resize(outer_33 * current_weight, 96);
+
+                    weighted_41 <= resize(outer_41 * current_weight, 96);
+                    weighted_42 <= resize(outer_42 * current_weight, 96);
+                    weighted_43 <= resize(outer_43 * current_weight, 96);
+
+                    weighted_51 <= resize(outer_51 * current_weight, 96);
+                    weighted_52 <= resize(outer_52 * current_weight, 96);
+                    weighted_53 <= resize(outer_53 * current_weight, 96);
+
+                    weighted_61 <= resize(outer_61 * current_weight, 96);
+                    weighted_62 <= resize(outer_62 * current_weight, 96);
+                    weighted_63 <= resize(outer_63 * current_weight, 96);
+
+                    state <= ADD;
+
+                when ADD =>
+
+                    acc_pxz_11 <= acc_pxz_11 + resize(shift_right(weighted_11, 2*Q), 44);
+                    acc_pxz_12 <= acc_pxz_12 + resize(shift_right(weighted_12, 2*Q), 44);
+                    acc_pxz_13 <= acc_pxz_13 + resize(shift_right(weighted_13, 2*Q), 44);
+
+                    acc_pxz_21 <= acc_pxz_21 + resize(shift_right(weighted_21, 2*Q), 44);
+                    acc_pxz_22 <= acc_pxz_22 + resize(shift_right(weighted_22, 2*Q), 44);
+                    acc_pxz_23 <= acc_pxz_23 + resize(shift_right(weighted_23, 2*Q), 44);
+
+                    acc_pxz_31 <= acc_pxz_31 + resize(shift_right(weighted_31, 2*Q), 44);
+                    acc_pxz_32 <= acc_pxz_32 + resize(shift_right(weighted_32, 2*Q), 44);
+                    acc_pxz_33 <= acc_pxz_33 + resize(shift_right(weighted_33, 2*Q), 44);
+
+                    acc_pxz_41 <= acc_pxz_41 + resize(shift_right(weighted_41, 2*Q), 44);
+                    acc_pxz_42 <= acc_pxz_42 + resize(shift_right(weighted_42, 2*Q), 44);
+                    acc_pxz_43 <= acc_pxz_43 + resize(shift_right(weighted_43, 2*Q), 44);
+
+                    acc_pxz_51 <= acc_pxz_51 + resize(shift_right(weighted_51, 2*Q), 44);
+                    acc_pxz_52 <= acc_pxz_52 + resize(shift_right(weighted_52, 2*Q), 44);
+                    acc_pxz_53 <= acc_pxz_53 + resize(shift_right(weighted_53, 2*Q), 44);
+
+                    acc_pxz_61 <= acc_pxz_61 + resize(shift_right(weighted_61, 2*Q), 44);
+                    acc_pxz_62 <= acc_pxz_62 + resize(shift_right(weighted_62, 2*Q), 44);
+                    acc_pxz_63 <= acc_pxz_63 + resize(shift_right(weighted_63, 2*Q), 44);
+
+                    if accumulate_idx = 12 then
+                        state <= NORMALIZE;
+                    else
+                        accumulate_idx <= accumulate_idx + 1;
+                        state <= COMPUTE_DELTAS;
+                    end if;
+
+                when NORMALIZE =>
+
+                    pxz_11 <= resize(acc_pxz_11, 48); pxz_12 <= resize(acc_pxz_12, 48); pxz_13 <= resize(acc_pxz_13, 48);
+                    pxz_21 <= resize(acc_pxz_21, 48); pxz_22 <= resize(acc_pxz_22, 48); pxz_23 <= resize(acc_pxz_23, 48);
+                    pxz_31 <= resize(acc_pxz_31, 48); pxz_32 <= resize(acc_pxz_32, 48); pxz_33 <= resize(acc_pxz_33, 48);
+                    pxz_41 <= resize(acc_pxz_41, 48); pxz_42 <= resize(acc_pxz_42, 48); pxz_43 <= resize(acc_pxz_43, 48);
+                    pxz_51 <= resize(acc_pxz_51, 48); pxz_52 <= resize(acc_pxz_52, 48); pxz_53 <= resize(acc_pxz_53, 48);
+                    pxz_61 <= resize(acc_pxz_61, 48); pxz_62 <= resize(acc_pxz_62, 48); pxz_63 <= resize(acc_pxz_63, 48);
+
+                    state <= FINISHED;
+
+                when FINISHED =>
+                    report "CROSS_COV: FINISHED" & LF &
+                           "  acc_pxz_11(31..0)=" & integer'image(to_integer(acc_pxz_11(31 downto 0))) & " acc_pxz_12(31..0)=" & integer'image(to_integer(acc_pxz_12(31 downto 0))) & " acc_pxz_13(31..0)=" & integer'image(to_integer(acc_pxz_13(31 downto 0)));
+                    done <= '1';
+                    if start = '0' then
+                        state <= IDLE;
+                    end if;
+
+            end case;
+        end if;
+    end process;
+
+end Behavioral;

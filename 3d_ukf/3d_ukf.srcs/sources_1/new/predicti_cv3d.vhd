@@ -1,0 +1,449 @@
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.NUMERIC_STD.ALL;
+
+library STD;
+use STD.TEXTIO.ALL;
+
+entity predicti_cv3d is
+  port (
+    clk         : in  std_logic;
+    rst         : in  std_logic;
+    start       : in  std_logic;
+
+    chi0_x_pos_in : in signed(47 downto 0);
+    chi0_x_vel_in : in signed(47 downto 0);
+    chi0_y_pos_in : in signed(47 downto 0);
+    chi0_y_vel_in : in signed(47 downto 0);
+    chi0_z_pos_in : in signed(47 downto 0);
+    chi0_z_vel_in : in signed(47 downto 0);
+
+    chi1_x_pos_in : in signed(47 downto 0);
+    chi1_x_vel_in : in signed(47 downto 0);
+    chi1_y_pos_in : in signed(47 downto 0);
+    chi1_y_vel_in : in signed(47 downto 0);
+    chi1_z_pos_in : in signed(47 downto 0);
+    chi1_z_vel_in : in signed(47 downto 0);
+
+    chi2_x_pos_in : in signed(47 downto 0);
+    chi2_x_vel_in : in signed(47 downto 0);
+    chi2_y_pos_in : in signed(47 downto 0);
+    chi2_y_vel_in : in signed(47 downto 0);
+    chi2_z_pos_in : in signed(47 downto 0);
+    chi2_z_vel_in : in signed(47 downto 0);
+
+    chi3_x_pos_in : in signed(47 downto 0);
+    chi3_x_vel_in : in signed(47 downto 0);
+    chi3_y_pos_in : in signed(47 downto 0);
+    chi3_y_vel_in : in signed(47 downto 0);
+    chi3_z_pos_in : in signed(47 downto 0);
+    chi3_z_vel_in : in signed(47 downto 0);
+
+    chi4_x_pos_in : in signed(47 downto 0);
+    chi4_x_vel_in : in signed(47 downto 0);
+    chi4_y_pos_in : in signed(47 downto 0);
+    chi4_y_vel_in : in signed(47 downto 0);
+    chi4_z_pos_in : in signed(47 downto 0);
+    chi4_z_vel_in : in signed(47 downto 0);
+
+    chi5_x_pos_in : in signed(47 downto 0);
+    chi5_x_vel_in : in signed(47 downto 0);
+    chi5_y_pos_in : in signed(47 downto 0);
+    chi5_y_vel_in : in signed(47 downto 0);
+    chi5_z_pos_in : in signed(47 downto 0);
+    chi5_z_vel_in : in signed(47 downto 0);
+
+    chi6_x_pos_in : in signed(47 downto 0);
+    chi6_x_vel_in : in signed(47 downto 0);
+    chi6_y_pos_in : in signed(47 downto 0);
+    chi6_y_vel_in : in signed(47 downto 0);
+    chi6_z_pos_in : in signed(47 downto 0);
+    chi6_z_vel_in : in signed(47 downto 0);
+
+    chi7_x_pos_in : in signed(47 downto 0);
+    chi7_x_vel_in : in signed(47 downto 0);
+    chi7_y_pos_in : in signed(47 downto 0);
+    chi7_y_vel_in : in signed(47 downto 0);
+    chi7_z_pos_in : in signed(47 downto 0);
+    chi7_z_vel_in : in signed(47 downto 0);
+
+    chi8_x_pos_in : in signed(47 downto 0);
+    chi8_x_vel_in : in signed(47 downto 0);
+    chi8_y_pos_in : in signed(47 downto 0);
+    chi8_y_vel_in : in signed(47 downto 0);
+    chi8_z_pos_in : in signed(47 downto 0);
+    chi8_z_vel_in : in signed(47 downto 0);
+
+    chi9_x_pos_in : in signed(47 downto 0);
+    chi9_x_vel_in : in signed(47 downto 0);
+    chi9_y_pos_in : in signed(47 downto 0);
+    chi9_y_vel_in : in signed(47 downto 0);
+    chi9_z_pos_in : in signed(47 downto 0);
+    chi9_z_vel_in : in signed(47 downto 0);
+
+    chi10_x_pos_in : in signed(47 downto 0);
+    chi10_x_vel_in : in signed(47 downto 0);
+    chi10_y_pos_in : in signed(47 downto 0);
+    chi10_y_vel_in : in signed(47 downto 0);
+    chi10_z_pos_in : in signed(47 downto 0);
+    chi10_z_vel_in : in signed(47 downto 0);
+
+    chi11_x_pos_in : in signed(47 downto 0);
+    chi11_x_vel_in : in signed(47 downto 0);
+    chi11_y_pos_in : in signed(47 downto 0);
+    chi11_y_vel_in : in signed(47 downto 0);
+    chi11_z_pos_in : in signed(47 downto 0);
+    chi11_z_vel_in : in signed(47 downto 0);
+
+    chi12_x_pos_in : in signed(47 downto 0);
+    chi12_x_vel_in : in signed(47 downto 0);
+    chi12_y_pos_in : in signed(47 downto 0);
+    chi12_y_vel_in : in signed(47 downto 0);
+    chi12_z_pos_in : in signed(47 downto 0);
+    chi12_z_vel_in : in signed(47 downto 0);
+
+    chi0_x_pos_pred : out signed(47 downto 0);
+    chi0_x_vel_pred : out signed(47 downto 0);
+    chi0_y_pos_pred : out signed(47 downto 0);
+    chi0_y_vel_pred : out signed(47 downto 0);
+    chi0_z_pos_pred : out signed(47 downto 0);
+    chi0_z_vel_pred : out signed(47 downto 0);
+
+    chi1_x_pos_pred : out signed(47 downto 0);
+    chi1_x_vel_pred : out signed(47 downto 0);
+    chi1_y_pos_pred : out signed(47 downto 0);
+    chi1_y_vel_pred : out signed(47 downto 0);
+    chi1_z_pos_pred : out signed(47 downto 0);
+    chi1_z_vel_pred : out signed(47 downto 0);
+
+    chi2_x_pos_pred : out signed(47 downto 0);
+    chi2_x_vel_pred : out signed(47 downto 0);
+    chi2_y_pos_pred : out signed(47 downto 0);
+    chi2_y_vel_pred : out signed(47 downto 0);
+    chi2_z_pos_pred : out signed(47 downto 0);
+    chi2_z_vel_pred : out signed(47 downto 0);
+
+    chi3_x_pos_pred : out signed(47 downto 0);
+    chi3_x_vel_pred : out signed(47 downto 0);
+    chi3_y_pos_pred : out signed(47 downto 0);
+    chi3_y_vel_pred : out signed(47 downto 0);
+    chi3_z_pos_pred : out signed(47 downto 0);
+    chi3_z_vel_pred : out signed(47 downto 0);
+
+    chi4_x_pos_pred : out signed(47 downto 0);
+    chi4_x_vel_pred : out signed(47 downto 0);
+    chi4_y_pos_pred : out signed(47 downto 0);
+    chi4_y_vel_pred : out signed(47 downto 0);
+    chi4_z_pos_pred : out signed(47 downto 0);
+    chi4_z_vel_pred : out signed(47 downto 0);
+
+    chi5_x_pos_pred : out signed(47 downto 0);
+    chi5_x_vel_pred : out signed(47 downto 0);
+    chi5_y_pos_pred : out signed(47 downto 0);
+    chi5_y_vel_pred : out signed(47 downto 0);
+    chi5_z_pos_pred : out signed(47 downto 0);
+    chi5_z_vel_pred : out signed(47 downto 0);
+
+    chi6_x_pos_pred : out signed(47 downto 0);
+    chi6_x_vel_pred : out signed(47 downto 0);
+    chi6_y_pos_pred : out signed(47 downto 0);
+    chi6_y_vel_pred : out signed(47 downto 0);
+    chi6_z_pos_pred : out signed(47 downto 0);
+    chi6_z_vel_pred : out signed(47 downto 0);
+
+    chi7_x_pos_pred : out signed(47 downto 0);
+    chi7_x_vel_pred : out signed(47 downto 0);
+    chi7_y_pos_pred : out signed(47 downto 0);
+    chi7_y_vel_pred : out signed(47 downto 0);
+    chi7_z_pos_pred : out signed(47 downto 0);
+    chi7_z_vel_pred : out signed(47 downto 0);
+
+    chi8_x_pos_pred : out signed(47 downto 0);
+    chi8_x_vel_pred : out signed(47 downto 0);
+    chi8_y_pos_pred : out signed(47 downto 0);
+    chi8_y_vel_pred : out signed(47 downto 0);
+    chi8_z_pos_pred : out signed(47 downto 0);
+    chi8_z_vel_pred : out signed(47 downto 0);
+
+    chi9_x_pos_pred : out signed(47 downto 0);
+    chi9_x_vel_pred : out signed(47 downto 0);
+    chi9_y_pos_pred : out signed(47 downto 0);
+    chi9_y_vel_pred : out signed(47 downto 0);
+    chi9_z_pos_pred : out signed(47 downto 0);
+    chi9_z_vel_pred : out signed(47 downto 0);
+
+    chi10_x_pos_pred : out signed(47 downto 0);
+    chi10_x_vel_pred : out signed(47 downto 0);
+    chi10_y_pos_pred : out signed(47 downto 0);
+    chi10_y_vel_pred : out signed(47 downto 0);
+    chi10_z_pos_pred : out signed(47 downto 0);
+    chi10_z_vel_pred : out signed(47 downto 0);
+
+    chi11_x_pos_pred : out signed(47 downto 0);
+    chi11_x_vel_pred : out signed(47 downto 0);
+    chi11_y_pos_pred : out signed(47 downto 0);
+    chi11_y_vel_pred : out signed(47 downto 0);
+    chi11_z_pos_pred : out signed(47 downto 0);
+    chi11_z_vel_pred : out signed(47 downto 0);
+
+    chi12_x_pos_pred : out signed(47 downto 0);
+    chi12_x_vel_pred : out signed(47 downto 0);
+    chi12_y_pos_pred : out signed(47 downto 0);
+    chi12_y_vel_pred : out signed(47 downto 0);
+    chi12_z_pos_pred : out signed(47 downto 0);
+    chi12_z_vel_pred : out signed(47 downto 0);
+
+    done        : out std_logic
+  );
+end entity;
+
+architecture Behavioral of predicti_cv3d is
+
+  constant DT_Q24_24 : signed(47 downto 0) := to_signed(1677722, 48);
+  constant Q : integer := 24;
+
+  type state_type is (IDLE, MULTIPLY, CALCULATE, FINISHED);
+  signal state : state_type := IDLE;
+
+  signal chi0_x_vel_dt, chi1_x_vel_dt, chi2_x_vel_dt, chi3_x_vel_dt, chi4_x_vel_dt : signed(95 downto 0) := (others => '0');
+  signal chi5_x_vel_dt, chi6_x_vel_dt, chi7_x_vel_dt, chi8_x_vel_dt, chi9_x_vel_dt : signed(95 downto 0) := (others => '0');
+  signal chi10_x_vel_dt, chi11_x_vel_dt, chi12_x_vel_dt : signed(95 downto 0) := (others => '0');
+
+  signal chi0_y_vel_dt, chi1_y_vel_dt, chi2_y_vel_dt, chi3_y_vel_dt, chi4_y_vel_dt : signed(95 downto 0) := (others => '0');
+  signal chi5_y_vel_dt, chi6_y_vel_dt, chi7_y_vel_dt, chi8_y_vel_dt, chi9_y_vel_dt : signed(95 downto 0) := (others => '0');
+  signal chi10_y_vel_dt, chi11_y_vel_dt, chi12_y_vel_dt : signed(95 downto 0) := (others => '0');
+
+  signal chi0_z_vel_dt, chi1_z_vel_dt, chi2_z_vel_dt, chi3_z_vel_dt, chi4_z_vel_dt : signed(95 downto 0) := (others => '0');
+  signal chi5_z_vel_dt, chi6_z_vel_dt, chi7_z_vel_dt, chi8_z_vel_dt, chi9_z_vel_dt : signed(95 downto 0) := (others => '0');
+  signal chi10_z_vel_dt, chi11_z_vel_dt, chi12_z_vel_dt : signed(95 downto 0) := (others => '0');
+
+  signal chi0_x_pos_pred_int, chi0_x_vel_pred_int, chi0_y_pos_pred_int, chi0_y_vel_pred_int, chi0_z_pos_pred_int, chi0_z_vel_pred_int : signed(47 downto 0) := (others => '0');
+  signal chi1_x_pos_pred_int, chi1_x_vel_pred_int, chi1_y_pos_pred_int, chi1_y_vel_pred_int, chi1_z_pos_pred_int, chi1_z_vel_pred_int : signed(47 downto 0) := (others => '0');
+  signal chi2_x_pos_pred_int, chi2_x_vel_pred_int, chi2_y_pos_pred_int, chi2_y_vel_pred_int, chi2_z_pos_pred_int, chi2_z_vel_pred_int : signed(47 downto 0) := (others => '0');
+  signal chi3_x_pos_pred_int, chi3_x_vel_pred_int, chi3_y_pos_pred_int, chi3_y_vel_pred_int, chi3_z_pos_pred_int, chi3_z_vel_pred_int : signed(47 downto 0) := (others => '0');
+  signal chi4_x_pos_pred_int, chi4_x_vel_pred_int, chi4_y_pos_pred_int, chi4_y_vel_pred_int, chi4_z_pos_pred_int, chi4_z_vel_pred_int : signed(47 downto 0) := (others => '0');
+  signal chi5_x_pos_pred_int, chi5_x_vel_pred_int, chi5_y_pos_pred_int, chi5_y_vel_pred_int, chi5_z_pos_pred_int, chi5_z_vel_pred_int : signed(47 downto 0) := (others => '0');
+  signal chi6_x_pos_pred_int, chi6_x_vel_pred_int, chi6_y_pos_pred_int, chi6_y_vel_pred_int, chi6_z_pos_pred_int, chi6_z_vel_pred_int : signed(47 downto 0) := (others => '0');
+  signal chi7_x_pos_pred_int, chi7_x_vel_pred_int, chi7_y_pos_pred_int, chi7_y_vel_pred_int, chi7_z_pos_pred_int, chi7_z_vel_pred_int : signed(47 downto 0) := (others => '0');
+  signal chi8_x_pos_pred_int, chi8_x_vel_pred_int, chi8_y_pos_pred_int, chi8_y_vel_pred_int, chi8_z_pos_pred_int, chi8_z_vel_pred_int : signed(47 downto 0) := (others => '0');
+  signal chi9_x_pos_pred_int, chi9_x_vel_pred_int, chi9_y_pos_pred_int, chi9_y_vel_pred_int, chi9_z_pos_pred_int, chi9_z_vel_pred_int : signed(47 downto 0) := (others => '0');
+  signal chi10_x_pos_pred_int, chi10_x_vel_pred_int, chi10_y_pos_pred_int, chi10_y_vel_pred_int, chi10_z_pos_pred_int, chi10_z_vel_pred_int : signed(47 downto 0) := (others => '0');
+  signal chi11_x_pos_pred_int, chi11_x_vel_pred_int, chi11_y_pos_pred_int, chi11_y_vel_pred_int, chi11_z_pos_pred_int, chi11_z_vel_pred_int : signed(47 downto 0) := (others => '0');
+  signal chi12_x_pos_pred_int, chi12_x_vel_pred_int, chi12_y_pos_pred_int, chi12_y_vel_pred_int, chi12_z_pos_pred_int, chi12_z_vel_pred_int : signed(47 downto 0) := (others => '0');
+
+begin
+
+  process(clk, rst)
+  begin
+    if rst = '1' then
+
+      state <= IDLE;
+      done <= '0';
+
+      chi0_x_vel_dt <= (others => '0'); chi1_x_vel_dt <= (others => '0'); chi2_x_vel_dt <= (others => '0'); chi3_x_vel_dt <= (others => '0');
+      chi4_x_vel_dt <= (others => '0'); chi5_x_vel_dt <= (others => '0'); chi6_x_vel_dt <= (others => '0'); chi7_x_vel_dt <= (others => '0');
+      chi8_x_vel_dt <= (others => '0'); chi9_x_vel_dt <= (others => '0'); chi10_x_vel_dt <= (others => '0'); chi11_x_vel_dt <= (others => '0');
+      chi12_x_vel_dt <= (others => '0');
+
+      chi0_y_vel_dt <= (others => '0'); chi1_y_vel_dt <= (others => '0'); chi2_y_vel_dt <= (others => '0'); chi3_y_vel_dt <= (others => '0');
+      chi4_y_vel_dt <= (others => '0'); chi5_y_vel_dt <= (others => '0'); chi6_y_vel_dt <= (others => '0'); chi7_y_vel_dt <= (others => '0');
+      chi8_y_vel_dt <= (others => '0'); chi9_y_vel_dt <= (others => '0'); chi10_y_vel_dt <= (others => '0'); chi11_y_vel_dt <= (others => '0');
+      chi12_y_vel_dt <= (others => '0');
+
+      chi0_z_vel_dt <= (others => '0'); chi1_z_vel_dt <= (others => '0'); chi2_z_vel_dt <= (others => '0'); chi3_z_vel_dt <= (others => '0');
+      chi4_z_vel_dt <= (others => '0'); chi5_z_vel_dt <= (others => '0'); chi6_z_vel_dt <= (others => '0'); chi7_z_vel_dt <= (others => '0');
+      chi8_z_vel_dt <= (others => '0'); chi9_z_vel_dt <= (others => '0'); chi10_z_vel_dt <= (others => '0'); chi11_z_vel_dt <= (others => '0');
+      chi12_z_vel_dt <= (others => '0');
+
+      chi0_x_pos_pred_int <= (others => '0'); chi0_x_vel_pred_int <= (others => '0'); chi0_y_pos_pred_int <= (others => '0'); chi0_y_vel_pred_int <= (others => '0'); chi0_z_pos_pred_int <= (others => '0'); chi0_z_vel_pred_int <= (others => '0');
+      chi1_x_pos_pred_int <= (others => '0'); chi1_x_vel_pred_int <= (others => '0'); chi1_y_pos_pred_int <= (others => '0'); chi1_y_vel_pred_int <= (others => '0'); chi1_z_pos_pred_int <= (others => '0'); chi1_z_vel_pred_int <= (others => '0');
+      chi2_x_pos_pred_int <= (others => '0'); chi2_x_vel_pred_int <= (others => '0'); chi2_y_pos_pred_int <= (others => '0'); chi2_y_vel_pred_int <= (others => '0'); chi2_z_pos_pred_int <= (others => '0'); chi2_z_vel_pred_int <= (others => '0');
+      chi3_x_pos_pred_int <= (others => '0'); chi3_x_vel_pred_int <= (others => '0'); chi3_y_pos_pred_int <= (others => '0'); chi3_y_vel_pred_int <= (others => '0'); chi3_z_pos_pred_int <= (others => '0'); chi3_z_vel_pred_int <= (others => '0');
+      chi4_x_pos_pred_int <= (others => '0'); chi4_x_vel_pred_int <= (others => '0'); chi4_y_pos_pred_int <= (others => '0'); chi4_y_vel_pred_int <= (others => '0'); chi4_z_pos_pred_int <= (others => '0'); chi4_z_vel_pred_int <= (others => '0');
+      chi5_x_pos_pred_int <= (others => '0'); chi5_x_vel_pred_int <= (others => '0'); chi5_y_pos_pred_int <= (others => '0'); chi5_y_vel_pred_int <= (others => '0'); chi5_z_pos_pred_int <= (others => '0'); chi5_z_vel_pred_int <= (others => '0');
+      chi6_x_pos_pred_int <= (others => '0'); chi6_x_vel_pred_int <= (others => '0'); chi6_y_pos_pred_int <= (others => '0'); chi6_y_vel_pred_int <= (others => '0'); chi6_z_pos_pred_int <= (others => '0'); chi6_z_vel_pred_int <= (others => '0');
+      chi7_x_pos_pred_int <= (others => '0'); chi7_x_vel_pred_int <= (others => '0'); chi7_y_pos_pred_int <= (others => '0'); chi7_y_vel_pred_int <= (others => '0'); chi7_z_pos_pred_int <= (others => '0'); chi7_z_vel_pred_int <= (others => '0');
+      chi8_x_pos_pred_int <= (others => '0'); chi8_x_vel_pred_int <= (others => '0'); chi8_y_pos_pred_int <= (others => '0'); chi8_y_vel_pred_int <= (others => '0'); chi8_z_pos_pred_int <= (others => '0'); chi8_z_vel_pred_int <= (others => '0');
+      chi9_x_pos_pred_int <= (others => '0'); chi9_x_vel_pred_int <= (others => '0'); chi9_y_pos_pred_int <= (others => '0'); chi9_y_vel_pred_int <= (others => '0'); chi9_z_pos_pred_int <= (others => '0'); chi9_z_vel_pred_int <= (others => '0');
+      chi10_x_pos_pred_int <= (others => '0'); chi10_x_vel_pred_int <= (others => '0'); chi10_y_pos_pred_int <= (others => '0'); chi10_y_vel_pred_int <= (others => '0'); chi10_z_pos_pred_int <= (others => '0'); chi10_z_vel_pred_int <= (others => '0');
+      chi11_x_pos_pred_int <= (others => '0'); chi11_x_vel_pred_int <= (others => '0'); chi11_y_pos_pred_int <= (others => '0'); chi11_y_vel_pred_int <= (others => '0'); chi11_z_pos_pred_int <= (others => '0'); chi11_z_vel_pred_int <= (others => '0');
+      chi12_x_pos_pred_int <= (others => '0'); chi12_x_vel_pred_int <= (others => '0'); chi12_y_pos_pred_int <= (others => '0'); chi12_y_vel_pred_int <= (others => '0'); chi12_z_pos_pred_int <= (others => '0'); chi12_z_vel_pred_int <= (others => '0');
+
+    elsif rising_edge(clk) then
+      case state is
+        when IDLE =>
+          done <= '0';
+          if start = '1' then
+            state <= MULTIPLY;
+          end if;
+
+        when MULTIPLY =>
+
+          chi0_x_vel_dt <= chi0_x_vel_in * DT_Q24_24;
+          chi1_x_vel_dt <= chi1_x_vel_in * DT_Q24_24;
+          chi2_x_vel_dt <= chi2_x_vel_in * DT_Q24_24;
+          chi3_x_vel_dt <= chi3_x_vel_in * DT_Q24_24;
+          chi4_x_vel_dt <= chi4_x_vel_in * DT_Q24_24;
+          chi5_x_vel_dt <= chi5_x_vel_in * DT_Q24_24;
+          chi6_x_vel_dt <= chi6_x_vel_in * DT_Q24_24;
+          chi7_x_vel_dt <= chi7_x_vel_in * DT_Q24_24;
+          chi8_x_vel_dt <= chi8_x_vel_in * DT_Q24_24;
+          chi9_x_vel_dt <= chi9_x_vel_in * DT_Q24_24;
+          chi10_x_vel_dt <= chi10_x_vel_in * DT_Q24_24;
+          chi11_x_vel_dt <= chi11_x_vel_in * DT_Q24_24;
+          chi12_x_vel_dt <= chi12_x_vel_in * DT_Q24_24;
+
+          chi0_y_vel_dt <= chi0_y_vel_in * DT_Q24_24;
+          chi1_y_vel_dt <= chi1_y_vel_in * DT_Q24_24;
+          chi2_y_vel_dt <= chi2_y_vel_in * DT_Q24_24;
+          chi3_y_vel_dt <= chi3_y_vel_in * DT_Q24_24;
+          chi4_y_vel_dt <= chi4_y_vel_in * DT_Q24_24;
+          chi5_y_vel_dt <= chi5_y_vel_in * DT_Q24_24;
+          chi6_y_vel_dt <= chi6_y_vel_in * DT_Q24_24;
+          chi7_y_vel_dt <= chi7_y_vel_in * DT_Q24_24;
+          chi8_y_vel_dt <= chi8_y_vel_in * DT_Q24_24;
+          chi9_y_vel_dt <= chi9_y_vel_in * DT_Q24_24;
+          chi10_y_vel_dt <= chi10_y_vel_in * DT_Q24_24;
+          chi11_y_vel_dt <= chi11_y_vel_in * DT_Q24_24;
+          chi12_y_vel_dt <= chi12_y_vel_in * DT_Q24_24;
+
+          chi0_z_vel_dt <= chi0_z_vel_in * DT_Q24_24;
+          chi1_z_vel_dt <= chi1_z_vel_in * DT_Q24_24;
+          chi2_z_vel_dt <= chi2_z_vel_in * DT_Q24_24;
+          chi3_z_vel_dt <= chi3_z_vel_in * DT_Q24_24;
+          chi4_z_vel_dt <= chi4_z_vel_in * DT_Q24_24;
+          chi5_z_vel_dt <= chi5_z_vel_in * DT_Q24_24;
+          chi6_z_vel_dt <= chi6_z_vel_in * DT_Q24_24;
+          chi7_z_vel_dt <= chi7_z_vel_in * DT_Q24_24;
+          chi8_z_vel_dt <= chi8_z_vel_in * DT_Q24_24;
+          chi9_z_vel_dt <= chi9_z_vel_in * DT_Q24_24;
+          chi10_z_vel_dt <= chi10_z_vel_in * DT_Q24_24;
+          chi11_z_vel_dt <= chi11_z_vel_in * DT_Q24_24;
+          chi12_z_vel_dt <= chi12_z_vel_in * DT_Q24_24;
+
+          state <= CALCULATE;
+
+        when CALCULATE =>
+
+          chi0_x_pos_pred_int <= chi0_x_pos_in + resize(shift_right(chi0_x_vel_dt, Q), 48);
+          chi0_x_vel_pred_int <= chi0_x_vel_in;
+          chi0_y_pos_pred_int <= chi0_y_pos_in + resize(shift_right(chi0_y_vel_dt, Q), 48);
+          chi0_y_vel_pred_int <= chi0_y_vel_in;
+          chi0_z_pos_pred_int <= chi0_z_pos_in + resize(shift_right(chi0_z_vel_dt, Q), 48);
+          chi0_z_vel_pred_int <= chi0_z_vel_in;
+
+          chi1_x_pos_pred_int <= chi1_x_pos_in + resize(shift_right(chi1_x_vel_dt, Q), 48);
+          chi1_x_vel_pred_int <= chi1_x_vel_in;
+          chi1_y_pos_pred_int <= chi1_y_pos_in + resize(shift_right(chi1_y_vel_dt, Q), 48);
+          chi1_y_vel_pred_int <= chi1_y_vel_in;
+          chi1_z_pos_pred_int <= chi1_z_pos_in + resize(shift_right(chi1_z_vel_dt, Q), 48);
+          chi1_z_vel_pred_int <= chi1_z_vel_in;
+
+          chi2_x_pos_pred_int <= chi2_x_pos_in + resize(shift_right(chi2_x_vel_dt, Q), 48);
+          chi2_x_vel_pred_int <= chi2_x_vel_in;
+          chi2_y_pos_pred_int <= chi2_y_pos_in + resize(shift_right(chi2_y_vel_dt, Q), 48);
+          chi2_y_vel_pred_int <= chi2_y_vel_in;
+          chi2_z_pos_pred_int <= chi2_z_pos_in + resize(shift_right(chi2_z_vel_dt, Q), 48);
+          chi2_z_vel_pred_int <= chi2_z_vel_in;
+
+          chi3_x_pos_pred_int <= chi3_x_pos_in + resize(shift_right(chi3_x_vel_dt, Q), 48);
+          chi3_x_vel_pred_int <= chi3_x_vel_in;
+          chi3_y_pos_pred_int <= chi3_y_pos_in + resize(shift_right(chi3_y_vel_dt, Q), 48);
+          chi3_y_vel_pred_int <= chi3_y_vel_in;
+          chi3_z_pos_pred_int <= chi3_z_pos_in + resize(shift_right(chi3_z_vel_dt, Q), 48);
+          chi3_z_vel_pred_int <= chi3_z_vel_in;
+
+          chi4_x_pos_pred_int <= chi4_x_pos_in + resize(shift_right(chi4_x_vel_dt, Q), 48);
+          chi4_x_vel_pred_int <= chi4_x_vel_in;
+          chi4_y_pos_pred_int <= chi4_y_pos_in + resize(shift_right(chi4_y_vel_dt, Q), 48);
+          chi4_y_vel_pred_int <= chi4_y_vel_in;
+          chi4_z_pos_pred_int <= chi4_z_pos_in + resize(shift_right(chi4_z_vel_dt, Q), 48);
+          chi4_z_vel_pred_int <= chi4_z_vel_in;
+
+          chi5_x_pos_pred_int <= chi5_x_pos_in + resize(shift_right(chi5_x_vel_dt, Q), 48);
+          chi5_x_vel_pred_int <= chi5_x_vel_in;
+          chi5_y_pos_pred_int <= chi5_y_pos_in + resize(shift_right(chi5_y_vel_dt, Q), 48);
+          chi5_y_vel_pred_int <= chi5_y_vel_in;
+          chi5_z_pos_pred_int <= chi5_z_pos_in + resize(shift_right(chi5_z_vel_dt, Q), 48);
+          chi5_z_vel_pred_int <= chi5_z_vel_in;
+
+          chi6_x_pos_pred_int <= chi6_x_pos_in + resize(shift_right(chi6_x_vel_dt, Q), 48);
+          chi6_x_vel_pred_int <= chi6_x_vel_in;
+          chi6_y_pos_pred_int <= chi6_y_pos_in + resize(shift_right(chi6_y_vel_dt, Q), 48);
+          chi6_y_vel_pred_int <= chi6_y_vel_in;
+          chi6_z_pos_pred_int <= chi6_z_pos_in + resize(shift_right(chi6_z_vel_dt, Q), 48);
+          chi6_z_vel_pred_int <= chi6_z_vel_in;
+
+          chi7_x_pos_pred_int <= chi7_x_pos_in + resize(shift_right(chi7_x_vel_dt, Q), 48);
+          chi7_x_vel_pred_int <= chi7_x_vel_in;
+          chi7_y_pos_pred_int <= chi7_y_pos_in + resize(shift_right(chi7_y_vel_dt, Q), 48);
+          chi7_y_vel_pred_int <= chi7_y_vel_in;
+          chi7_z_pos_pred_int <= chi7_z_pos_in + resize(shift_right(chi7_z_vel_dt, Q), 48);
+          chi7_z_vel_pred_int <= chi7_z_vel_in;
+
+          chi8_x_pos_pred_int <= chi8_x_pos_in + resize(shift_right(chi8_x_vel_dt, Q), 48);
+          chi8_x_vel_pred_int <= chi8_x_vel_in;
+          chi8_y_pos_pred_int <= chi8_y_pos_in + resize(shift_right(chi8_y_vel_dt, Q), 48);
+          chi8_y_vel_pred_int <= chi8_y_vel_in;
+          chi8_z_pos_pred_int <= chi8_z_pos_in + resize(shift_right(chi8_z_vel_dt, Q), 48);
+          chi8_z_vel_pred_int <= chi8_z_vel_in;
+
+          chi9_x_pos_pred_int <= chi9_x_pos_in + resize(shift_right(chi9_x_vel_dt, Q), 48);
+          chi9_x_vel_pred_int <= chi9_x_vel_in;
+          chi9_y_pos_pred_int <= chi9_y_pos_in + resize(shift_right(chi9_y_vel_dt, Q), 48);
+          chi9_y_vel_pred_int <= chi9_y_vel_in;
+          chi9_z_pos_pred_int <= chi9_z_pos_in + resize(shift_right(chi9_z_vel_dt, Q), 48);
+          chi9_z_vel_pred_int <= chi9_z_vel_in;
+
+          chi10_x_pos_pred_int <= chi10_x_pos_in + resize(shift_right(chi10_x_vel_dt, Q), 48);
+          chi10_x_vel_pred_int <= chi10_x_vel_in;
+          chi10_y_pos_pred_int <= chi10_y_pos_in + resize(shift_right(chi10_y_vel_dt, Q), 48);
+          chi10_y_vel_pred_int <= chi10_y_vel_in;
+          chi10_z_pos_pred_int <= chi10_z_pos_in + resize(shift_right(chi10_z_vel_dt, Q), 48);
+          chi10_z_vel_pred_int <= chi10_z_vel_in;
+
+          chi11_x_pos_pred_int <= chi11_x_pos_in + resize(shift_right(chi11_x_vel_dt, Q), 48);
+          chi11_x_vel_pred_int <= chi11_x_vel_in;
+          chi11_y_pos_pred_int <= chi11_y_pos_in + resize(shift_right(chi11_y_vel_dt, Q), 48);
+          chi11_y_vel_pred_int <= chi11_y_vel_in;
+          chi11_z_pos_pred_int <= chi11_z_pos_in + resize(shift_right(chi11_z_vel_dt, Q), 48);
+          chi11_z_vel_pred_int <= chi11_z_vel_in;
+
+          chi12_x_pos_pred_int <= chi12_x_pos_in + resize(shift_right(chi12_x_vel_dt, Q), 48);
+          chi12_x_vel_pred_int <= chi12_x_vel_in;
+          chi12_y_pos_pred_int <= chi12_y_pos_in + resize(shift_right(chi12_y_vel_dt, Q), 48);
+          chi12_y_vel_pred_int <= chi12_y_vel_in;
+          chi12_z_pos_pred_int <= chi12_z_pos_in + resize(shift_right(chi12_z_vel_dt, Q), 48);
+          chi12_z_vel_pred_int <= chi12_z_vel_in;
+
+          state <= FINISHED;
+
+        when FINISHED =>
+
+          done <= '1';
+
+          if start = '0' then
+            state <= IDLE;
+          end if;
+
+        when others =>
+          state <= IDLE;
+      end case;
+    end if;
+  end process;
+
+  chi0_x_pos_pred <= chi0_x_pos_pred_int; chi0_x_vel_pred <= chi0_x_vel_pred_int; chi0_y_pos_pred <= chi0_y_pos_pred_int; chi0_y_vel_pred <= chi0_y_vel_pred_int; chi0_z_pos_pred <= chi0_z_pos_pred_int; chi0_z_vel_pred <= chi0_z_vel_pred_int;
+  chi1_x_pos_pred <= chi1_x_pos_pred_int; chi1_x_vel_pred <= chi1_x_vel_pred_int; chi1_y_pos_pred <= chi1_y_pos_pred_int; chi1_y_vel_pred <= chi1_y_vel_pred_int; chi1_z_pos_pred <= chi1_z_pos_pred_int; chi1_z_vel_pred <= chi1_z_vel_pred_int;
+  chi2_x_pos_pred <= chi2_x_pos_pred_int; chi2_x_vel_pred <= chi2_x_vel_pred_int; chi2_y_pos_pred <= chi2_y_pos_pred_int; chi2_y_vel_pred <= chi2_y_vel_pred_int; chi2_z_pos_pred <= chi2_z_pos_pred_int; chi2_z_vel_pred <= chi2_z_vel_pred_int;
+  chi3_x_pos_pred <= chi3_x_pos_pred_int; chi3_x_vel_pred <= chi3_x_vel_pred_int; chi3_y_pos_pred <= chi3_y_pos_pred_int; chi3_y_vel_pred <= chi3_y_vel_pred_int; chi3_z_pos_pred <= chi3_z_pos_pred_int; chi3_z_vel_pred <= chi3_z_vel_pred_int;
+  chi4_x_pos_pred <= chi4_x_pos_pred_int; chi4_x_vel_pred <= chi4_x_vel_pred_int; chi4_y_pos_pred <= chi4_y_pos_pred_int; chi4_y_vel_pred <= chi4_y_vel_pred_int; chi4_z_pos_pred <= chi4_z_pos_pred_int; chi4_z_vel_pred <= chi4_z_vel_pred_int;
+  chi5_x_pos_pred <= chi5_x_pos_pred_int; chi5_x_vel_pred <= chi5_x_vel_pred_int; chi5_y_pos_pred <= chi5_y_pos_pred_int; chi5_y_vel_pred <= chi5_y_vel_pred_int; chi5_z_pos_pred <= chi5_z_pos_pred_int; chi5_z_vel_pred <= chi5_z_vel_pred_int;
+  chi6_x_pos_pred <= chi6_x_pos_pred_int; chi6_x_vel_pred <= chi6_x_vel_pred_int; chi6_y_pos_pred <= chi6_y_pos_pred_int; chi6_y_vel_pred <= chi6_y_vel_pred_int; chi6_z_pos_pred <= chi6_z_pos_pred_int; chi6_z_vel_pred <= chi6_z_vel_pred_int;
+  chi7_x_pos_pred <= chi7_x_pos_pred_int; chi7_x_vel_pred <= chi7_x_vel_pred_int; chi7_y_pos_pred <= chi7_y_pos_pred_int; chi7_y_vel_pred <= chi7_y_vel_pred_int; chi7_z_pos_pred <= chi7_z_pos_pred_int; chi7_z_vel_pred <= chi7_z_vel_pred_int;
+  chi8_x_pos_pred <= chi8_x_pos_pred_int; chi8_x_vel_pred <= chi8_x_vel_pred_int; chi8_y_pos_pred <= chi8_y_pos_pred_int; chi8_y_vel_pred <= chi8_y_vel_pred_int; chi8_z_pos_pred <= chi8_z_pos_pred_int; chi8_z_vel_pred <= chi8_z_vel_pred_int;
+  chi9_x_pos_pred <= chi9_x_pos_pred_int; chi9_x_vel_pred <= chi9_x_vel_pred_int; chi9_y_pos_pred <= chi9_y_pos_pred_int; chi9_y_vel_pred <= chi9_y_vel_pred_int; chi9_z_pos_pred <= chi9_z_pos_pred_int; chi9_z_vel_pred <= chi9_z_vel_pred_int;
+  chi10_x_pos_pred <= chi10_x_pos_pred_int; chi10_x_vel_pred <= chi10_x_vel_pred_int; chi10_y_pos_pred <= chi10_y_pos_pred_int; chi10_y_vel_pred <= chi10_y_vel_pred_int; chi10_z_pos_pred <= chi10_z_pos_pred_int; chi10_z_vel_pred <= chi10_z_vel_pred_int;
+  chi11_x_pos_pred <= chi11_x_pos_pred_int; chi11_x_vel_pred <= chi11_x_vel_pred_int; chi11_y_pos_pred <= chi11_y_pos_pred_int; chi11_y_vel_pred <= chi11_y_vel_pred_int; chi11_z_pos_pred <= chi11_z_pos_pred_int; chi11_z_vel_pred <= chi11_z_vel_pred_int;
+  chi12_x_pos_pred <= chi12_x_pos_pred_int; chi12_x_vel_pred <= chi12_x_vel_pred_int; chi12_y_pos_pred <= chi12_y_pos_pred_int; chi12_y_vel_pred <= chi12_y_vel_pred_int; chi12_z_pos_pred <= chi12_z_pos_pred_int; chi12_z_vel_pred <= chi12_z_vel_pred_int;
+
+end Behavioral;

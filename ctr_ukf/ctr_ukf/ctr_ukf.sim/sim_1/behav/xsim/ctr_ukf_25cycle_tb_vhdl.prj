@@ -1,0 +1,29 @@
+# compile vhdl design source files
+vhdl2008 xil_defaultlib  \
+"../../../../../src/cholesky_multiplier_array.vhd" \
+"../../../../../src/cholesky_col2_parallel.vhd" \
+"../../../../../src/cholesky_col3_parallel.vhd" \
+"../../../../../src/cholesky_col4_parallel.vhd" \
+"../../../../../src/cholesky_col5_parallel.vhd" \
+"../../../../../src/cholesky_col678_parallel.vhd" \
+"../../../../../src/cholsky_9.vhd" \
+"../../../../../src/covariance_reconstruct_3d.vhd" \
+"../../../../../src/cross_covariance_3d.vhd" \
+"../../../../../src/innovation_3d.vhd" \
+"../../../../../src/innovation_covariance_3d.vhd" \
+"../../../../../src/kalman_gain_3d.vhd" \
+"../../../../../src/matrix_inverse_3x3.vhd" \
+"../../../../../src/measurement_mean_3d.vhd" \
+"../../../../../src/measurement_update_3d.vhd" \
+"../../../../../src/predicted_mean_3d.vhd" \
+"../../../../../src/predicti_ctr3d.vhd" \
+"../../../../../src/prediction_phase_3d.vhd" \
+"../../../../../src/process_noise_3d.vhd" \
+"../../../../../src/sigma_3d.vhd" \
+"../../../../../src/sqrt_cordic.vhd" \
+"../../../../../src/state_update_3d.vhd" \
+"../../../../../src/ukf_supreme_3d.vhd" \
+"../../../../../src/ctr_ukf_25cycle_tb.vhd" \
+
+# Do not sort compile order
+nosort
